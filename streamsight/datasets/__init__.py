@@ -29,6 +29,7 @@ could potentially cause a chuck of data to be lost.
     AmazonMovieDataset
     AmazonMusicDataset
     YelpDataset
+    LastFMDataset
     MovieLens100K
     
 Example
@@ -72,4 +73,5 @@ from streamsight.datasets.amazon import (
     AmazonMusicDataset,
 )
 from streamsight.datasets.yelp import YelpDataset
+from streamsight.datasets.lastfm import LastFMDataset
 from streamsight.datasets.movielens import MovieLens100K

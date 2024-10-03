@@ -9,14 +9,15 @@ from tqdm import tqdm
 logger = logging.getLogger(__name__)
 tqdm.pandas()
 
+
 class MovieLensDataset(Dataset):
     """Base class for Movielens datasets.
-    
+
     Other Movielens datasets should inherit from this class.
-    
+
     This code is adapted from RecPack :cite:`recpack`
-    
     """
+
     USER_IX = "userId"
     """Name of the column in the DataFrame that contains user identifiers."""
     ITEM_IX = "movieId"
@@ -26,19 +27,19 @@ class MovieLensDataset(Dataset):
     RATING_IX = "rating"
     """Name of the column in the DataFrame that contains the rating a user gave to the item."""
 
-    DATASETURL = "http://files.grouplens.org/datasets/movielens"
+    DATASET_URL = "http://files.grouplens.org/datasets/movielens"
 
     REMOTE_ZIPNAME = ""
     """Name of the zip-file on the MovieLens server."""
 
     REMOTE_FILENAME = "ratings.csv"
     """Name of the file containing user ratings on the MovieLens server."""
-    
+
     @property
     def DEFAULT_FILENAME(self) -> str:
         """Default filename that will be used if it is not specified by the user."""
         return f"{self.REMOTE_ZIPNAME}_{self.REMOTE_FILENAME}"
-        
+
     def _download_dataset(self):
         """Downloads the dataset.
 
@@ -46,17 +47,30 @@ class MovieLensDataset(Dataset):
         """
         # Download the zip into the data directory
         self._fetch_remote(
-            f"{self.DATASETURL}/{self.REMOTE_ZIPNAME}.zip", os.path.join(self.base_path, f"{self.REMOTE_ZIPNAME}.zip")
+            f"{self.DATASET_URL}/{self.REMOTE_ZIPNAME}.zip",
+            os.path.join(self.base_path, f"{self.REMOTE_ZIPNAME}.zip"),
         )
 
         # Extract the ratings file which we will use
-        with zipfile.ZipFile(os.path.join(self.base_path, f"{self.REMOTE_ZIPNAME}.zip"), "r") as zip_ref:
-            zip_ref.extract(f"{self.REMOTE_ZIPNAME}/{self.REMOTE_FILENAME}", self.base_path)
+        with zipfile.ZipFile(
+            os.path.join(self.base_path, f"{self.REMOTE_ZIPNAME}.zip"), "r"
+        ) as zip_ref:
+            zip_ref.extract(
+                f"{self.REMOTE_ZIPNAME}/{self.REMOTE_FILENAME}", self.base_path
+            )
 
         # Rename the ratings file to the specified filename
-        os.rename(os.path.join(self.base_path, f"{self.REMOTE_ZIPNAME}/{self.REMOTE_FILENAME}"), self.file_path)
-class MovieLens100K(MovieLensDataset):
+        os.rename(
+            os.path.join(
+                self.base_path, f"{self.REMOTE_ZIPNAME}/{self.REMOTE_FILENAME}"
+            ),
+            self.file_path,
+        )
 
+
+class MovieLens100K(MovieLensDataset):
+    """MovieLens 100K dataset.
+    """
     REMOTE_FILENAME = "u.data"
     REMOTE_ZIPNAME = "ml-100k"
 
@@ -71,7 +85,12 @@ class MovieLens100K(MovieLensDataset):
                 self.TIMESTAMP_IX: np.int64,
             },
             sep="\t",
-            names=[self.USER_IX, self.ITEM_IX, self.RATING_IX, self.TIMESTAMP_IX],
+            names=[
+                self.USER_IX,
+                self.ITEM_IX,
+                self.RATING_IX,
+                self.TIMESTAMP_IX,
+            ],
         )
 
         return df

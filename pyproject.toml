@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "streamsight"
-version = "0.2.9"
+version = "0.2.10"
 description = "A toolkit for offline evaluation of Recommender Systems"
 authors = ["Ng Tze Kean <ngtzekean@gmail.com>"]
 readme = "README.md"

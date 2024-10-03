@@ -4,6 +4,11 @@ from streamsight.datasets.base import Dataset
 
 
 class TestDataset(Dataset):
+    """
+    Test dataset.
+    
+    The test dataset is a dummy dataset that is used for testing purposes.
+    """
     USER_IX = "user_id"
     """Name of the column in the DataFrame that contains user identifiers."""
     ITEM_IX = "item_id"

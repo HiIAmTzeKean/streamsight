@@ -177,3 +177,4 @@ docs/source/generated/**
 docs/source/_autosummary/**
 **/log/**
 **/.python-version
+docs/report/**
