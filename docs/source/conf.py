@@ -22,7 +22,8 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
     'sphinx.ext.mathjax',
-    'sphinxcontrib.bibtex'
+    'sphinxcontrib.bibtex',
+    'sphinxcontrib.pdfembed' # for embedding pdf
 ]
 autosummary_generate = True
 bibtex_bibfiles = ['refs.bib']

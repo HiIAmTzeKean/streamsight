@@ -27,8 +27,8 @@ def compute_cosine_similarity(X: csr_matrix) -> csr_matrix:
     """
     # X.T otherwise we are doing a user KNN
     item_cosine_similarities = cosine_similarity(X.T, dense_output=False)
-    item_cosine_similarities.setdiag(0)
     # Set diagonal to 0, because we don't want to support self similarity
+    item_cosine_similarities.setdiag(0)
 
     return item_cosine_similarities
 

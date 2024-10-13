@@ -1,0 +1,77 @@
+\documentclass{article}
+\usepackage[a4paper, total={6in, 8in}]{geometry}
+
+\usepackage{graphicx} % Required for inserting images
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{graphicx}
+\usepackage{adjustbox}
+\usepackage[table,xcdraw]{xcolor}
+\usepackage{tikz}
+
+\usepackage{array}
+\usepackage{ragged2e}
+\newcolumntype{P}[1]{>{\RaggedRight\hspace{0pt}}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}m{#1}}
+
+\def\cm{\tikz\fill[scale=0.5,fill=black!60!green](0,.35) -- (.25,0) -- (1,.7) -- (.25,.15) -- cycle;}
+\def\cx{\color{red}$X$}
+
+\begin{table}[h]
+    \centering
+    \begin{adjustbox}{width=6in}
+        \begin{tabular}{c||cc|cc}
+            \toprule
+            Library     & Language   & Last Release & \begin{tabular}[c]{@{}c@{}}Library usage\\ API/CLI\end{tabular} & \begin{tabular}[c]{@{}c@{}}Config definition\\ (API/Config file/CLI)\end{tabular} \\
+            \toprule
+            \rowcolor[HTML]{FFFFC7}
+            Streamsight & Python3.12 & 2024         & API                                                             & API                                                                               \\ \midrule
+            ReChorus    & Python3.10 & 2024         & CLI                                                             & CLI                                                                               \\ \midrule
+            RecBole     & Python3+   & 2023         & API                                                             & CLI, Config file                                                                  \\ \midrule
+            DaisyRec    & Python3.5+ & 2023         & CLI                                                             & CLI                                                                               \\ \midrule
+            RecList     & Python3.8  & 2023         & API                                                             & API                                                                               \\ \midrule
+            ClayRS      & Python3.10 & 2023         & API                                                             & API                                                                               \\
+            \bottomrule
+        \end{tabular}
+    \end{adjustbox}
+\end{table}
+
+\begin{table}[h]
+    \centering
+    \begin{adjustbox}{width=6in}
+        \begin{tabular}{c||cc|cc}
+            \toprule
+            Library     & Language   & Last Release & \begin{tabular}[c]{@{}c@{}}Library usage\\ API/CLI\end{tabular} & \begin{tabular}[c]{@{}c@{}}Config definition\\ (API/Config file/CLI)\end{tabular} \\
+            \toprule
+            \rowcolor[HTML]{FFFFC7}
+            Streamsight & Python3.12 & 2024         & API                                                             & API                                                                               \\ \midrule
+            ReChorus    & Python3.10 & 2024         & CLI                                                             & CLI                                                                               \\ \midrule
+            RecBole     & Python3+   & 2023         & API                                                             & CLI, Config file                                                                  \\ \midrule
+            DaisyRec    & Python3.5+ & 2023         & CLI                                                             & CLI                                                                               \\ \midrule
+            RecList     & Python3.8  & 2023         & API                                                             & API                                                                               \\ \midrule
+            ClayRS      & Python3.10 & 2023         & API                                                             & API                                                                               \\
+            \bottomrule
+        \end{tabular}
+    \end{adjustbox}
+\end{table}
+
+\begin{table}[h]
+    \centering
+    \begin{adjustbox}{width=6in}
+        \begin{tabular}{c||ccccc}
+            \toprule
+            Library     & Setting 1 & Setting 2 & Setting 3 & Setting 4 & Setting 5 \\
+            \toprule
+            \rowcolor[HTML]{FFFFC7}
+            Streamsight & \cm       & \cm       & \cm       & \cx       & \cx       \\ \midrule
+            ReChorus    & \cx       & \cx       & \cx       & \cx       & \cm       \\ \midrule
+            RecBole     & \cx       & \cx       & \cm       & \cm       & \cm       \\ \midrule
+            DaisyRec    & \cx       & \cx       & \cm       & \cm       & \cm       \\ \midrule
+            RecList     & \cx       & \cx       & \cx       & \cx       & \cx       \\ \midrule
+            ClayRS      & \cx       & \cx       & \cx       & \cm       & \cm       \\
+            \bottomrule
+        \end{tabular}
+    \end{adjustbox}
+\end{table}
+
+\end{document}

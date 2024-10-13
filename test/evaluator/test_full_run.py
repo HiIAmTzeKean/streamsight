@@ -1,7 +1,7 @@
 import pytest
 from streamsight.datasets import TestDataset
 from streamsight.settings import SlidingWindowSetting, SingleTimePointSetting
-from streamsight.evaluators import EvaluatorBuilder, EvaluatorStreamerBuilder
+from streamsight.evaluators import EvaluatorPipelineBuilder, EvaluatorStreamerBuilder
 
 @pytest.fixture()
 def sliding_window():
@@ -25,28 +25,46 @@ def single_time_point():
     return setting
 
 class TestFullRun:
-    def test_sliding_window(self, sliding_window):
-        b = EvaluatorBuilder()
+    def test_sliding_window_without_unknown_user_item(self, sliding_window):
+        b = EvaluatorPipelineBuilder(True,True)
+        b.add_setting(sliding_window)
         b.add_algorithm("ItemKNNIncremental", {"K": 1})
         b.add_metric("PrecisionK")
         b.add_metric("RecallK")
+        evaluator = b.build()
+        evaluator.run()
+        
+    def test_sliding_window_without_unknown_user(self, sliding_window):
+        b = EvaluatorPipelineBuilder(True,False)
         b.add_setting(sliding_window)
+        b.add_algorithm("ItemKNNIncremental", {"K": 1})
+        b.add_metric("PrecisionK")
+        b.add_metric("RecallK")
+        evaluator = b.build()
+        evaluator.run()
+    
+    def test_sliding_window_with_unknowns(self, sliding_window):
+        b = EvaluatorPipelineBuilder(False,False)
+        b.add_setting(sliding_window)
+        b.add_algorithm("ItemKNNIncremental", {"K": 1})
+        b.add_metric("PrecisionK")
+        b.add_metric("RecallK")
         evaluator = b.build()
         evaluator.run()
         
     def test_single_time_point(self, single_time_point):
-        b = EvaluatorBuilder()
+        b = EvaluatorPipelineBuilder()
+        b.add_setting(single_time_point)
         b.add_algorithm("ItemKNNIncremental", {"K": 1})
         b.add_metric("PrecisionK")
         b.add_metric("RecallK")
-        b.add_setting(single_time_point)
         evaluator = b.build()
         evaluator.run()
     
     def test_stream(self, sliding_window):
         b = EvaluatorStreamerBuilder()
-        b.add_metric("PrecisionK")
         b.add_setting(sliding_window)
+        b.add_metric("PrecisionK")
         evaluator = b.build()
         
         from streamsight.algorithms import ItemKNNIncremental

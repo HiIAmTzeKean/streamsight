@@ -115,6 +115,13 @@ class SlidingWindowSetting(Setting):
             past_interaction, future_interaction = self._window_splitter.split(
                 data
             )
+            
+            # if past_interaction, future_interaction is empty, log an info message
+            if len(past_interaction) == 0:
+                logger.info(f"Split at time {sub_time} resulted in empty unlabelled testing samples.")
+            if len(future_interaction) == 0:
+                logger.info(f"Split at time {sub_time} resulted in empty incremental data.")
+                
             unlabeled_set, ground_truth = self.prediction_data_processor.process(past_interaction,
                                                                                  future_interaction,
                                                                                  self.top_K)

@@ -457,8 +457,27 @@ class InteractionMatrix:
             True
         )
     
-    def __repr__(self):
+    def __repr__(self) -> str:
         return repr(self._df)
+    
+    def __eq__(self, value: object) -> bool:
+        if not isinstance(value, InteractionMatrix):
+            logger.debug(f"Comparing {type(value)} with InteractionMatrix is not supported")
+            return False
+        return self._df.equals(value._df)
+    
+    def __len__(self) -> int:
+        """Return the number of interactions in the matrix.
+        
+        This is distinct from the shape of the matrix, which is the number of
+        users and items that has been released to the model. The length of the
+        matrix is the number of interactions present in the matrix resulting
+        from filter operations.
+
+        :return: Number of interactions in the matrix.
+        :rtype: int
+        """
+        return len(self._df)
     
     @overload
     def items_in(self, I: Set[int], inplace=False) -> "InteractionMatrix": ...
@@ -692,6 +711,12 @@ class InteractionMatrix:
     
     def get_interaction_data(self) -> "InteractionMatrix":
         """Get the data that is not denoted by "-1".
+        
+        User and item IDs that are not denoted by "-1" are the ones that are
+        known to the model.
+        
+        :return: InteractionMatrix with only the known data.
+        :rtype: InteractionMatrix
         """
         mask = (self._df[InteractionMatrix.USER_IX]!=-1) & (self._df[InteractionMatrix.ITEM_IX]!=-1)
         return self._apply_mask(mask)

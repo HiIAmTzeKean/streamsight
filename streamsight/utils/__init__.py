@@ -21,6 +21,37 @@ preparing the logger and creating the configuration file.
     to_binary
     to_tuple
     ProgressBar
+
+Logging
+-------------
+The logging module provides functions to control the logging level and
+suppression of warnings.
+
+Example
+~~~~~~~~~
+
+.. code-block:: python
+    
+    import streamsight
+
+    # Set log level to INFO and suppress warnings
+    streamsight.log_level_by_name("INFO")
+    streamsight.suppress_warnings(suppress=True)
+
+    # Log some information
+    logger = logging.getLogger("streamsight")
+    logger.info("This is an informational message.")
+
+    # Emit a warning (this will be suppressed)
+    warnings.warn("This warning will not appear.")
+
+.. autosummary::
+    :toctree: generated/
+
+    log_level
+    log_level_by_name
+    suppress_warnings
+    suppress_specific_warnings
 """
 
 from streamsight.utils.directory_tools import create_config_yaml, safe_dir
@@ -34,3 +65,4 @@ from streamsight.utils.util import (
     to_tuple,
     ProgressBar
 )
+from streamsight.utils.logging_tools import log_level, log_level_by_name, suppress_warnings, suppress_specific_warnings

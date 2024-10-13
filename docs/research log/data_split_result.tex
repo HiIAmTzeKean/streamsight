@@ -1,0 +1,32 @@
+\documentclass{article}
+\usepackage[a4paper, total={6in, 8in}]{geometry}
+
+\usepackage{graphicx} % Required for inserting images
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{graphicx}
+\usepackage{adjustbox}
+\usepackage[table,xcdraw]{xcolor}
+\usepackage{tikz}
+
+\usepackage{array}
+\usepackage{ragged2e}
+\newcolumntype{P}[1]{>{\RaggedRight\hspace{0pt}}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}m{#1}}
+
+\def\cm{\tikz\fill[scale=0.5,fill=black!60!green](0,.35) -- (.25,0) -- (1,.7) -- (.25,.15) -- cycle;}
+\def\cx{\color{red}$X$}
+
+\begin{table}[]
+    \begin{tabular}{c|c|c}
+        \toprule
+        \textbf{Data split scheme} & \textbf{\# framework} & \textbf{\% of paper reviewed} \\ \toprule
+        \begin{tabular}[c]{@{}c@{}}Setting 1\\ Sliding global timeline\end{tabular}                        & 0                     & 0\%                           \\ \hline
+        \begin{tabular}[c]{@{}c@{}}Setting 2\\ Sliding global timeline (sample test instance)\end{tabular} & 0                     & 0\%                           \\ \hline
+        \begin{tabular}[c]{@{}c@{}}Setting 3\\ Single test timestamp\end{tabular}                          & 3                     & 25\%                          \\ \hline
+        \begin{tabular}[c]{@{}c@{}}Setting 4\\ Leave one out\end{tabular}                                  & 8                     & 66.6\%                        \\ \hline
+        \begin{tabular}[c]{@{}c@{}}Setting 5\\ Random\end{tabular}                                         & 12                    & 100\%                         \\ \bottomrule
+    \end{tabular}
+\end{table}
+
+\end{document}

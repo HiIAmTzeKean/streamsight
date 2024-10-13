@@ -242,8 +242,14 @@ class EvaluatorStreamer(EvaluatorBase):
         if not self.has_started:
             raise ValueError(f"call start_stream() before requesting data for algorithm {algo_id}")
 
+        logger.debug(f"Getting data for algorithm {algo_id}")
+
         # check if we need to move to the next window
-        if self.setting.is_sliding_window_setting and self.status_registry.is_all_predicted():
+        if (
+            self.setting.is_sliding_window_setting
+            and self.status_registry.is_all_predicted()
+            and self.status_registry.is_all_same_data_segment()
+        ):
             self.user_item_base._reset_unknown_user_item_base()
             incremental_data = self.setting.next_incremental_data()
             self.user_item_base._update_known_user_item_base(incremental_data)
@@ -303,6 +309,7 @@ class EvaluatorStreamer(EvaluatorBase):
         :return: The unlabeled data for prediction
         :rtype: Optional[InteractionMatrix]
         """
+        logger.debug(f"Getting unlabeled data for algorithm {algo_id}")
         status = self.status_registry[algo_id].state
         if status in [AlgorithmStateEnum.READY, AlgorithmStateEnum.PREDICTED]:
             return self._unlabeled_data_cache
@@ -344,6 +351,7 @@ class EvaluatorStreamer(EvaluatorBase):
         :type X_pred: csr_matrix
         :raises ValueError: If X_pred is not an InteractionMatrix or csr_matrix
         """
+        logger.debug(f"Submitting prediction for algorithm {algo_id}")
         status = self.status_registry[algo_id].state
 
         if status == AlgorithmStateEnum.READY:
@@ -428,7 +436,7 @@ class EvaluatorStreamer(EvaluatorBase):
         self._run_step += 1
 
         logger.debug(f"Caching evaluation data for step {self._run_step}")
-        
+
         try:
             unlabeled_data, ground_truth_data, _ = self._get_evaluation_data()
         except EOWSetting as e:
@@ -436,7 +444,7 @@ class EvaluatorStreamer(EvaluatorBase):
 
         self._unlabeled_data_cache = unlabeled_data
         self._ground_truth_data_cache = ground_truth_data
-        
+
         logger.debug(f"Data cached for step {self._run_step} complete")
 
     def _evaluate(self, algo_id: UUID, X_pred: csr_matrix) -> None:
@@ -456,7 +464,7 @@ class EvaluatorStreamer(EvaluatorBase):
         """
         X_true = self._ground_truth_data_cache.get_users_n_first_interaction(self.metric_k)
         X_true = X_true.binary_values
-        
+
         X_pred = self._prediction_shape_handler(X_true.shape, X_pred)
         algorithm_name = self.status_registry.get_algorithm_identifier(algo_id)
 
@@ -469,5 +477,5 @@ class EvaluatorStreamer(EvaluatorBase):
                 metric:Metric = metric_cls(timestamp_limit=self._current_timestamp)
             metric.calculate(X_true, X_pred)
             self._acc.add(metric=metric, algorithm_name=algorithm_name)
-        
+
         logger.debug(f"Prediction evaluated for algorithm {algo_id} complete")

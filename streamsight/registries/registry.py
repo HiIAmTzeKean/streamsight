@@ -299,6 +299,12 @@ class AlgorithmStatusRegistry:
     def is_all_predicted(self) -> bool:
         return self.status_counts[AlgorithmStateEnum.PREDICTED] == len(self.registered)
     
+    def is_all_same_data_segment(self) -> bool:
+        data_segments = set()
+        for key in self:
+            data_segments.add(self[key].data_segment)
+        return len(data_segments) == 1
+    
     def all_algo_states(self) -> Dict[str, AlgorithmStateEnum]:
         states = {}
         for key in self:

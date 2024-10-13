@@ -29,12 +29,16 @@ class Algorithm(BaseEstimator,ABC):
         self.rand_gen = np.random.default_rng(seed=self.seed)
 
     @property
-    def name(self):
-        """Name of the object's class."""
+    def name(self) -> str:
+        """Name of the object's class.
+        
+        :return: Name of the object's class
+        :rtype: str
+        """
         return self.__class__.__name__
 
     @property
-    def identifier(self):
+    def identifier(self) -> str:
         """Identifier of the object.
 
         Identifier is made by combining the class name with the parameters
@@ -42,6 +46,9 @@ class Algorithm(BaseEstimator,ABC):
 
         Constructed by recreating the initialisation call.
         Example: `Algorithm(param_1=value)`
+        
+        :return: Identifier of the object
+        :rtype: str
         """
         paramstring = ",".join((f"{k}={v}" for k, v in self.get_params().items()))
         return self.name + "(" + paramstring + ")"
@@ -90,7 +97,7 @@ class Algorithm(BaseEstimator,ABC):
     def _check_fit_complete(self):
         """Helper function to check if model was correctly fitted
 
-        Uses the sklear check_is_fitted function,
+        Uses the sklearn check_is_fitted function,
         https://scikit-learn.org/stable/modules/generated/sklearn.utils.validation.check_is_fitted.html
         """
         check_is_fitted(self)
@@ -178,7 +185,7 @@ class Algorithm(BaseEstimator,ABC):
                 col += self.rand_gen.integers(0, known_item_id, to_predict[user_id]).tolist()
         pad = csr_matrix((np.ones(len(row)), (row, col)), shape=intended_shape)
         X_pred += pad
-        logger.debug(f"Padding completed")
+        logger.debug(f"Padding by {self.name} completed")
         return X_pred
 
     def predict(self, X: InteractionMatrix) -> csr_matrix:
@@ -207,7 +214,7 @@ class Algorithm(BaseEstimator,ABC):
 
         X_pred = self._predict(prev_interaction, to_predict_frame._df)
         # known_user_id, known_item_id = X_pred.shape
-        logger.debug("Predictions by algorithm completed")
+        logger.debug(f"Predictions by {self.name} completed")
 
         # ID indexing starts at 0, so max_id + 1 is the number of unique IDs
         max_user_id = to_predict_frame.max_user_id + 1

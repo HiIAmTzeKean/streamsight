@@ -12,14 +12,19 @@ single time point setting and the sliding window setting. The single time point
 setting is analogous to Setting 3 of :cite:`Sun_2023`. The sliding window setting
 is analogous to Setting 1 of :cite:`Sun_2023`.
 
+.. image:: /_static/data_split_definition.png
+    :align: center
+    :scale: 40 %
+    :alt: Setting 1 diagram
+
 Observe the diagram below where the data split for Setting 1 is shown below. The
 unlabeled data will contain interactions that are masked which occurs after the
 current timestamp. The ground truth data will contain the actual interactions
 which will be used for evaluation and then released to the algorithm.
 
-.. image:: /_static/setting1.png
+.. image:: /_static/setting1_no_seq.png
     :align: center
-    :scale: 50 %
+    :scale: 100 %
     :alt: Setting 1 diagram
     
 While the this setting allows us to test the algorithm in a real-world scenario,

@@ -3,6 +3,8 @@ import logging.config
 import os
 from typing import Union
 
+import pyfiglet
+
 import numpy as np
 import progressbar
 import yaml
@@ -117,26 +119,41 @@ class ProgressBar:
             self.pbar.finish()
 
 
-def prepare_logger(path: str) -> dict:
+def prepare_logger(log_config_filename: str) -> dict:
     """Prepare the logger.
     
     Prepare the logger by reading the configuration file and setting up the logger.
     If the configuration file does not exist, it will be created.
     
-    :param path: Path to the configuration file.
-    :type path: str
+    :param log_config_filename: Name of configuration file.
+    :type log_config_filename: str
     :return: Configuration dictionary.
     :rtype: dict
     """
-    if not os.path.exists(path):
-        create_config_yaml(path)
+    if not os.path.exists(log_config_filename):
+        create_config_yaml(log_config_filename)
 
-    with open(path, "r") as stream:
-        config = yaml.load(stream, Loader=yaml.FullLoader)
+    try:
+        with open(log_config_filename, "r") as stream:
+            config = yaml.load(stream, Loader=yaml.FullLoader)
+    except FileNotFoundError:
+        raise FileNotFoundError(f"Configuration file not found at {log_config_filename}.")
+    except yaml.YAMLError as e:
+        raise ValueError(f"Error parsing YAML configuration: {e}")
 
-    dir_name = os.path.dirname(config["handlers"]["file"]["filename"])
+    # Get the log file path from the configuration
+    log_file = config["handlers"]["file"]["filename"]
+
+    # Ensure the log file directory exists
+    dir_name = os.path.dirname(log_file)
     safe_dir(dir_name)
 
+    # Write ASCII art to the log file
+    with open(log_file, "w") as log:
+        ascii_art = pyfiglet.figlet_format("streamsight")
+        log.write(ascii_art)
+        log.write("\n")
+    
     logging.config.dictConfig(config)
     logging.captureWarnings(True)
     return config

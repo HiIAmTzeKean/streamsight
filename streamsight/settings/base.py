@@ -132,6 +132,7 @@ class Setting(ABC):
         self._check_split()
 
         self._split_complete = True
+        logger.info(f"{self.name} data split complete.")
 
     def _check_split_complete(self):
         """Check if the setting is ready to be used for evaluation.

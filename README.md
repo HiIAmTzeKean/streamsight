@@ -1,6 +1,6 @@
 # Streamsight
 
-![logo](https://hiiamtzekean.github.io/Streamsight/_static/logo.png)
+![logo](https://hiiamtzekean.github.io/Streamsight/_static/logo_removebg.png)
 
 The purpose of this Final Year Project is to design and implement a toolkit for
 evaluating Recommendation System (RecSys) which respects the temporal aspect
@@ -12,14 +12,15 @@ provision of API for the programmer to interact with the objects in the library.
 [![Docs](https://github.com/HiIAmTzeKean/Streamsight/actions/workflows/pages/pages-build-deployment/badge.svg)](https://hiiamtzekean.github.io/Streamsight/)&nbsp;&nbsp;
 [![Python version](https://img.shields.io/badge/python-3.12-blue)](https://www.python.org/downloads/)
 
-## Table Table of Contents
+## Table of Contents
 - [Streamsight](#streamsight)
-  - [Table Table of Contents](#table-table-of-contents)
+  - [Table of Contents](#table-of-contents)
   - [Installation with Github](#installation-with-github)
     - [Installation through poetry](#installation-through-poetry)
     - [Installation through pip](#installation-through-pip)
   - [Installation with PyPI](#installation-with-pypi)
   - [Documentation](#documentation)
+  - [Report and Citation](#report-and-citation)
 
 
 ## Installation with Github
@@ -73,3 +74,12 @@ poetry add streamsight
 
 The documentation can be found [here](https://hiiamtzekean.github.io/Streamsight/)
 and [repository](https://github.com/HiIAmTzeKean/Streamsight) on Github.
+
+## Report and Citation
+
+The report for this project [Streamsight: a toolkit for offline evaluation of recommender systems](https://hdl.handle.net/10356/181114)
+can be found in the NTU repository.
+
+```
+Ng, T. K. (2024). Streamsight: a toolkit for offline evaluation of recommender systems. Final Year Project (FYP), Nanyang Technological University, Singapore. https://hdl.handle.net/10356/181114
+```
