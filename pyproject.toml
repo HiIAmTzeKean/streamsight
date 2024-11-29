@@ -1,44 +1,53 @@
-[tool.poetry]
+[project]
 name = "streamsight"
-version = "1.0.0"
+version = "2.0.1"
 description = "A toolkit for offline evaluation of Recommender Systems."
-authors = ["Ng Tze Kean <ngtzekean@gmail.com>"]
+requires-python = ">=3.12"
 readme = "README.md"
-repository = "https://github.com/HiIAmTzeKean/Streamsight"
-documentation = "https://hiiamtzekean.github.io/Streamsight/"
-keywords = ["recsys", "toolkit", "practical evaluation", "global timeline"]
+keywords = ["recsys", "recommendation", "practical evaluation", "global timeline", "reccomender systems", "data leakage"]
+dependencies = [
+    "colorama>=0.4.6",
+    "colorlog>=6.10.1",
+    "deprecation>=2.1.0",
+    "httpx>=0.28.1",
+    "pyfiglet>=1.0.4",
+    "simplejson>=3.20.2",
+    "tqdm>=4.67.1",
+    "typing-extensions>=4.15.0",
+    "urllib3>=2.5.0",
+    "progressbar>=2.5",
+]
 
-[tool.poetry.dependencies]
-python = "3.12.5"
-colorama = "^0.4.6"
-colorlog = "^6.8.2"
-pyyaml = "^6.0.1"
-scikit-learn = "^1.4.1.post1"
-pandas = "^2.2.2"
-numpy = "^1.26.4"
-urllib3 = "^2.2.1"
-tqdm = "^4.66.4"
-progressbar = "^2.5"
-typing-extensions = "^4.12.2"
-deprecation = "^2.1.0"
-sphinxcontrib-pdfembed = {git = "https://github.com/SuperKogito/sphinxcontrib-pdfembed"}
-pyfiglet = "^1.0.2"
+[dependency-groups]
+dev = [
+    "ipykernel>=7.1.0",
+    "ipywidgets>=8.1.8",
+    "jupyter>=1.1.1",
+    "pytest>=9.0.1",
+]
+data = [
+    "numpy>=1.26.4",
+    "pandas>=2.3.3",
+    "pyarrow>=22.0.0",
+]
+ml = [
+    "recpack>=0.3.6",
+    "scikit-learn>=1.7.2",
+]
+docs = [
+    "mkdocs>=1.6.1",
+    "mkdocs-material>=9.7.0",
+    "mkdocstrings[python]>=1.0.0",
+    "mkdocs-bibtex>=4.4.0",
+    "mkdocs-gen-files>=0.6.0",
+    "mkdocs-literate-nav>=0.6.2",
+    "mkdocs-section-index>=0.3.10",
+    "ruff>=0.14.7",
+]
 
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.3.2"
-ipykernel = "^6.29.3"
-black = "^24.4.2"
-simplejson = "^3.19.3"
-sphinxcontrib-bibtex = "^2.6.2"
-setuptools = "^73.0.0"
-sphinx = "7.4.7"
-sphinx-rtd-theme = "^2.0.0"
-ipywidgets = "^8.1.5"
-pyfiglet = "^1.0.2"
+[tool.uv]
+package = true
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
-
-[tool.poetry.urls]
-"Report" = "https://hdl.handle.net/10356/181114"
+requires = ["uv_build>=0.9.11,<0.10.0"]
+build-backend = "uv_build"

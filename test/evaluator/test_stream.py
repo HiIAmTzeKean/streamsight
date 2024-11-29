@@ -1,27 +1,33 @@
+from typing import Literal
+
 import pytest
-from streamsight.settings.sliding_window_setting import SlidingWindowSetting
-from test.conftest import BACKGROUND_T, WINDOW_SIZE, SEED, N_SEQ_DATA, SEED
-from streamsight.evaluators import EvaluatorStreamerBuilder
+
 from streamsight.algorithms import ItemKNNIncremental
+from streamsight.datasets.base import Dataset
+from streamsight.evaluators import EvaluatorStreamerBuilder
+from streamsight.settings.sliding_window_setting import SlidingWindowSetting
 
 
-@pytest.fixture()
-def setting(test_dataset):
+@pytest.fixture
+def setting(test_dataset: Dataset, session_vars: dict) -> SlidingWindowSetting:
     data = test_dataset.load()
-    setting_obj = SlidingWindowSetting(background_t=BACKGROUND_T,
-                                window_size=WINDOW_SIZE,
-                                n_seq_data=N_SEQ_DATA,
-                                seed=SEED)
+    setting_obj = SlidingWindowSetting(
+        background_t=session_vars["BACKGROUND_T"],
+        window_size=session_vars["WINDOW_SIZE"],
+        n_seq_data=session_vars["N_SEQ_DATA"],
+        seed=session_vars["SEED"],
+    )
     setting_obj.split(data)
     return setting_obj
 
-@pytest.fixture()
-def k():
+
+@pytest.fixture
+def k() -> Literal[10]:
     return 10
 
-class TestStreamer():
-    def test_algorithm_in_different_data_segment_handling(self, setting, k):
 
+class TestStreamer:
+    def test_algorithm_in_different_data_segment_handling(self, setting, k):
         builder = EvaluatorStreamerBuilder()
         builder.add_setting(setting)
         builder.set_metric_K(k)
@@ -33,6 +39,7 @@ class TestStreamer():
         print(algo_id)
 
         from streamsight.algorithms import ItemKNNStatic
+
         external_model = ItemKNNIncremental(K=10)
         external_model_id = evaluator.register_algorithm(external_model)
         print(external_model_id)
@@ -59,7 +66,6 @@ class TestStreamer():
         prediction = algo.predict(unlabeled_data)
         evaluator.submit_prediction(algo_id, prediction)
 
-
         to_validate_data = evaluator.get_data(external_model_id)
 
-        assert(to_validate_data == data)
+        assert to_validate_data == data

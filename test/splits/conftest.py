@@ -1,8 +1,14 @@
+import pandas as pd
 import pytest
 
 from streamsight.matrix import InteractionMatrix
-from test.conftest import test_dataframe, TIMESTAMP_IX, ITEM_IX, USER_IX
 
-@pytest.fixture()
-def matrix(test_dataframe):
-    return InteractionMatrix(test_dataframe, ITEM_IX, USER_IX, TIMESTAMP_IX)
+
+@pytest.fixture
+def matrix(test_dataframe: pd.DataFrame, session_vars: dict) -> InteractionMatrix:
+    return InteractionMatrix(
+        test_dataframe,
+        session_vars["ITEM_IX"],
+        session_vars["USER_IX"],
+        session_vars["TIMESTAMP_IX"],
+    )

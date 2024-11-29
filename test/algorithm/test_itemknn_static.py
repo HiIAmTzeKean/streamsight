@@ -1,5 +1,6 @@
 from streamsight.algorithms import ItemKNNStatic
 
+
 def test_ItemKNNStatic(setting):
     algo = ItemKNNStatic(K=10)
     setting.background_data.mask_shape()

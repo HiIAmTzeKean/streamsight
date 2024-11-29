@@ -171,10 +171,12 @@ cython_debug/
 #.idea/
 .vscode/settings.json
 examples/download_dataset.ipynb
-**/LOGGING_CONFIG.yaml
+**/logging_config.yaml
 **/data/**
+examples/metadata/**
 docs/source/generated/**
 docs/source/_autosummary/**
 **/log/**
+**/logs/**
 **/.python-version
 docs/report/**

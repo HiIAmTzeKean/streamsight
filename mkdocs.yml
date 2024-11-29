@@ -1,0 +1,66 @@
+site_name: Streamsight
+repo_url: https://github.com/hiiamtzekean/streamsight
+repo_name: HiIAmTzeKean/Streamsight
+
+nav:
+  - Home: index.md
+  - About: about.md
+  - API Reference: reference/
+
+docs_dir: docs
+site_dir: site
+use_directory_urls: true
+
+theme:
+  name: material
+  logo: assets/_static/logo_no_text.png
+  locale: en
+  palette:
+    scheme: slate
+    primary: teal
+    accent: orange
+  features:
+    - content.code.copy
+    - navigation.top
+    - navigation.tabs
+    - navigation.path
+    - navigation.tracking
+    - toc.follow
+
+plugins:
+  - search:
+      lang: en
+  - bibtex:
+      bib_file: "docs/reference.bib"
+  - gen-files:
+      scripts:
+        - scripts/gen_ref_pages.py
+  - literate-nav:
+      nav_file: SUMMARY.md
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          paths: [src]
+          options:
+            docstring_style: google
+            show_source: true
+            show_bases: true
+            show_if_no_docstring: true
+            inherited_members: true
+            members_order: source
+            filters:
+              - "!^_"
+
+markdown_extensions:
+  - footnotes
+  - pymdownx.highlight:
+      default_lang: python
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - toc:
+      permalink: true
+
+watch:
+  - docs
+  - src/streamsight

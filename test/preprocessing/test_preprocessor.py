@@ -1,18 +1,17 @@
 import pytest
+
+from streamsight.datasets.base import Dataset
 from streamsight.matrix import InteractionMatrix
 from streamsight.preprocessing import DataFramePreprocessor, MinItemsPerUser
-from test.conftest import test_dataset, test_dataframe, MIN_ITEM_USER
 
 
-@pytest.fixture()
-def preprocessor(test_dataset):
-    return DataFramePreprocessor(
-        test_dataset.ITEM_IX, test_dataset.USER_IX, test_dataset.TIMESTAMP_IX
-    )
+@pytest.fixture
+def preprocessor(test_dataset: Dataset) -> DataFramePreprocessor:
+    return DataFramePreprocessor(test_dataset.ITEM_IX, test_dataset.USER_IX, test_dataset.TIMESTAMP_IX)
 
 
-@pytest.fixture()
-def filter(test_dataset):
+@pytest.fixture
+def filter(test_dataset: Dataset) -> MinItemsPerUser:
     return MinItemsPerUser(3, test_dataset.ITEM_IX, test_dataset.USER_IX)
 
 
