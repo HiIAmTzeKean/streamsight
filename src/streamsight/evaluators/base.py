@@ -1,8 +1,7 @@
 import logging
 import warnings
-from typing import List, Literal, Optional, Tuple, Union
+from typing import Literal, Optional, Union
 
-import numpy as np
 import pandas as pd
 from scipy.sparse import csr_matrix
 
@@ -22,8 +21,8 @@ class EvaluatorBase(object):
     Provides the common methods and attributes for the evaluator classes. Should
     there be a need to create a new evaluator, it should inherit from this class.
 
-    :param metric_entries: List of metric entries to compute
-    :type metric_entries: List[MetricEntry]
+    :param metric_entries: list of metric entries to compute
+    :type metric_entries: list[MetricEntry]
     :param setting: Setting object
     :type setting: Setting
     :param ignore_unknown_user: Ignore unknown users, defaults to True
@@ -34,7 +33,7 @@ class EvaluatorBase(object):
 
     def __init__(
         self,
-        metric_entries: List[MetricEntry],
+        metric_entries: list[MetricEntry],
         setting: Setting,
         metric_k: int,
         ignore_unknown_user: bool = True,
@@ -64,7 +63,7 @@ class EvaluatorBase(object):
         self._run_step = 0
         self._current_timestamp: int
 
-    def _get_evaluation_data(self) -> Tuple[InteractionMatrix, InteractionMatrix, int]:
+    def _get_evaluation_data(self) -> tuple[InteractionMatrix, InteractionMatrix, int]:
         """Get the evaluation data for the current step.
 
         Internal method to get the evaluation data for the current step. The
@@ -76,8 +75,8 @@ class EvaluatorBase(object):
         .. note::
             :attr:`_current_timestamp` is updated with the current timestamp.
 
-        :return: Tuple of unlabeled data, ground truth data, and current timestamp
-        :rtype: Tuple[csr_matrix, csr_matrix, int]
+        :return: tuple of unlabeled data, ground truth data, and current timestamp
+        :rtype: tuple[csr_matrix, csr_matrix, int]
         :raises EOWSettingError: If there is no more data to be processed
         """
         try:
@@ -88,7 +87,7 @@ class EvaluatorBase(object):
         except EOWSettingError:
             raise EOWSettingError("There is no more data to be processed, EOW reached")
 
-        self.user_item_base._update_unknown_user_item_base(ground_truth_data)
+        self.user_item_base.update_unknown_user_item_base(ground_truth_data)
 
         # unlabeled data will respect the unknown user and item
         # and thus will take the shape of the known user and item
@@ -108,7 +107,7 @@ class EvaluatorBase(object):
         return unlabeled_data, ground_truth_data, current_timestamp
 
     def _prediction_shape_handler(
-        self, X_true_shape: Tuple[int, int], X_pred: csr_matrix
+        self, X_true_shape: tuple[int, int], X_pred: csr_matrix
     ) -> csr_matrix:
         """Handle shape difference of the prediction matrix.
 
@@ -117,7 +116,7 @@ class EvaluatorBase(object):
         :attr:`ignore_unknown_user` and :attr:`ignore_unknown_item`.
 
         :param X_true_shape: Shape of the ground truth matrix
-        :type X_true_shape: Tuple[int,int]
+        :type X_true_shape: tuple[int,int]
         :param X_pred: Prediction matrix
         :type X_pred: csr_matrix
         :raises ValueError: If the user dimension of the prediction matrix is less than the ground truth matrix

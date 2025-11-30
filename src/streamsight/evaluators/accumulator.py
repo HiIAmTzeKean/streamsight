@@ -9,18 +9,20 @@ from deprecation import deprecated
 from streamsight.evaluators.util import MetricLevelEnum
 from streamsight.metrics import Metric
 
+
 logger = logging.getLogger(__name__)
 
-class MetricAccumulator():
-    def __init__(self):
+
+class MetricAccumulator:
+    def __init__(self) -> None:
         self.acc: defaultdict[str, dict[str, Metric]] = defaultdict(dict)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key) -> dict[str, Metric]:
         return self.acc[key]
 
     def add(self, metric: Metric, algorithm_name: str) -> None:
         """Add a metric to the accumulator
-        
+
         Takes a :class:`Metric` object and adds it under the algorithm name. If
         the specified metric already exists for the algorithm, it will be
         overwritten with the new metric.
@@ -32,10 +34,10 @@ class MetricAccumulator():
         """
         if metric.identifier in self.acc[algorithm_name]:
             warn(
-                f"Metric {metric.identifier} already exists for algorithm {algorithm_name}. Overwriting...")
+                f"Metric {metric.identifier} already exists for algorithm {algorithm_name}. Overwriting..."
+            )
 
-        logger.debug(
-            f"Metric {metric.identifier} created for algorithm {algorithm_name}")
+        logger.debug(f"Metric {metric.identifier} created for algorithm {algorithm_name}")
 
         self.acc[algorithm_name][metric.identifier] = metric
 
@@ -45,7 +47,9 @@ class MetricAccumulator():
         for algo_name in self.acc:
             for metric_identifier in self.acc[algo_name]:
                 metric = self.acc[algo_name][metric_identifier]
-                results[(algo_name, f"t={metric.timestamp_limit}", metric.name)] = metric.micro_result
+                results[(algo_name, f"t={metric.timestamp_limit}", metric.name)] = (
+                    metric.micro_result
+                )
         return results
 
     @property
@@ -69,7 +73,9 @@ class MetricAccumulator():
                         f"{algo_name} did not have any correct predictions."
                     )
                 results[(algo_name, f"t={metric.timestamp_limit}", metric.name)]["score"] = score
-                results[(algo_name, f"t={metric.timestamp_limit}", metric.name)]["num_user"] = num_user
+                results[(algo_name, f"t={metric.timestamp_limit}", metric.name)]["num_user"] = (
+                    num_user
+                )
         return results
 
     @deprecated(details="Use `window_level_metrics` instead")
@@ -79,26 +85,34 @@ class MetricAccumulator():
         for algo_name in self.acc:
             for metric_identifier in self.acc[algo_name]:
                 metric = self.acc[algo_name][metric_identifier]
-                results[(algo_name, f"t={metric.timestamp_limit}", metric.name)]["score"] = metric.macro_result
-                results[(algo_name, f"t={metric.timestamp_limit}", metric.name)]["num_user"] = metric.num_users
+                results[(algo_name, f"t={metric.timestamp_limit}", metric.name)]["score"] = (
+                    metric.macro_result
+                )
+                results[(algo_name, f"t={metric.timestamp_limit}", metric.name)]["num_user"] = (
+                    metric.num_users
+                )
         return results
 
     def df_user_level_metric(self) -> pd.DataFrame:
         """User metric across all timestamps
-        
+
         Computation of metrics evaluated on the user level
 
         :return: _description_
         :rtype: pd.DataFrame
         """
-        df = pd.DataFrame.from_dict(self.user_level_metrics, orient="index").explode(["user_id","score"])
+        df = pd.DataFrame.from_dict(self.user_level_metrics, orient="index").explode(
+            ["user_id", "score"]
+        )
         df = df.rename_axis(["Algorithm", "Timestamp", "Metric"])
         return df
 
     def df_window_level_metric(self) -> pd.DataFrame:
-        df = pd.DataFrame.from_dict(self.window_level_metrics, orient="index").explode(["score","num_user"])
+        df = pd.DataFrame.from_dict(self.window_level_metrics, orient="index").explode(
+            ["score", "num_user"]
+        )
         df = df.rename_axis(["Algorithm", "Timestamp", "Metric"])
-        df.rename(columns={"score":"window_score"}, inplace=True)
+        df.rename(columns={"score": "window_score"}, inplace=True)
         return df
 
     def df_macro_level_metric(self) -> pd.DataFrame:
@@ -107,7 +121,9 @@ class MetricAccumulator():
         :return: _description_
         :rtype: pd.DataFrame
         """
-        df = pd.DataFrame.from_dict(self.window_level_metrics, orient="index").explode(["score","num_user"])
+        df = pd.DataFrame.from_dict(self.window_level_metrics, orient="index").explode(
+            ["score", "num_user"]
+        )
         df = df.rename_axis(["Algorithm", "Timestamp", "Metric"])
         result = df.groupby(["Algorithm", "Metric"]).mean()["score"].to_frame()
         result["num_window"] = df.groupby(["Algorithm", "Metric"]).count()["score"]
@@ -120,7 +136,9 @@ class MetricAccumulator():
         :return: _description_
         :rtype: pd.DataFrame
         """
-        df = pd.DataFrame.from_dict(self.user_level_metrics, orient="index").explode(["user_id","score"])
+        df = pd.DataFrame.from_dict(self.user_level_metrics, orient="index").explode(
+            ["user_id", "score"]
+        )
         df = df.rename_axis(["Algorithm", "Timestamp", "Metric"])
         result = df.groupby(["Algorithm", "Metric"])["score"].mean().to_frame()
         result["num_user"] = df.groupby(["Algorithm", "Metric"])["score"].count()

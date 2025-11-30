@@ -1,5 +1,4 @@
 import logging
-import warnings
 from typing import List, Optional
 from warnings import warn
 
@@ -15,31 +14,32 @@ from streamsight.settings import EOWSettingError, Setting
 
 logger = logging.getLogger(__name__)
 
+
 class EvaluatorPipeline(EvaluatorBase):
     """Evaluation via pipeline
-    
-    The diagram below shows the diagram of the pipeline evaluator for the 
+
+    The diagram below shows the diagram of the pipeline evaluator for the
     sliding window setting. If the setting is a single time point setting, the
     evaluator will only run phase 1 and 2. This is the same as setting the sliding
     window setting to only having 1 split.
-    
+
     .. image:: /_static/pipeline_scheme.png
         :align: center
         :scale: 40 %
         :alt: Pipeline diagram
-    
+
     The pipeline is responsible for evaluating algorithms with metrics and evaluates
     the algorithms in 3 phases:
-    
+
     1. Pre-phase
     2. Evaluation phase
     3. Data release phase
-    
+
     In Setting 3 (single time point split), the evaluator will only run phase 1 and 2.
     In Setting 1 (sliding window setting), the evaluator will run all 3 phases, with
     phase 2 and 3 repeated for each window/split. This can be seen in the diagram
     above.
-    
+
     :param algorithm_entries: List of algorithm entries
     :type algorithm_entries: List[AlgorithmEntry]
     :param metric_entries: List of metric entries
@@ -55,6 +55,7 @@ class EvaluatorPipeline(EvaluatorBase):
     :param seed: Random seed for the evaluator
     :type seed: Optional[int]
     """
+
     def __init__(
         self,
         algorithm_entries: List[AlgorithmEntry],
@@ -66,12 +67,7 @@ class EvaluatorPipeline(EvaluatorBase):
         seed: Optional[int] = None,
     ):
         super().__init__(
-            metric_entries,
-            setting,
-            metric_k,
-            ignore_unknown_user,
-            ignore_unknown_item,
-            seed
+            metric_entries, setting, metric_k, ignore_unknown_user, ignore_unknown_item, seed
         )
 
         self.algorithm_entries = algorithm_entries
@@ -82,7 +78,7 @@ class EvaluatorPipeline(EvaluatorBase):
 
     def _instantiate_algorithm(self):
         """Instantiate the algorithms from the algorithm entries.
-        
+
         This method instantiates the algorithms and stores them in :attr:`algorithm`.
         Each time this method is called, the algorithms are re-instantiated.
         """
@@ -91,9 +87,9 @@ class EvaluatorPipeline(EvaluatorBase):
             params = algorithm_entry.params
             self.algorithm.append(ALGORITHM_REGISTRY.get(algorithm_entry.name)(**params))
 
-    def _ready_algo(self):
+    def _ready_algo(self) -> None:
         """Train the algorithms with the background data.
-        
+
         This method should be called after :meth:`_instantiate_algorithm()`. The
         algorithms are trained with the background data, and the set of known
         user/item is updated.
@@ -103,27 +99,27 @@ class EvaluatorPipeline(EvaluatorBase):
         if not hasattr(self, "algorithm"):
             raise ValueError("Algorithm not instantiated")
         background_data = self.setting.background_data
-        self.user_item_base._update_known_user_item_base(background_data)
+        self.user_item_base.update_known_user_item_base(background_data)
         # TODO timeline is not respected, can use flag to indicate a override the known user and item
         background_data.mask_shape(self.user_item_base.known_shape)
 
         for algo in self.algorithm:
             algo.fit(background_data)
 
-    def _ready_evaluator(self):
+    def _ready_evaluator(self) -> None:
         """Pre-phase of the evaluator. (Phase 1)
-        
+
         Summary
         -------
-        
+
         This method prepares the evaluator for the evaluation process.
         It instantiates the algorithm, trains the algorithm with the background data,
         instantiates the metric accumulator, and prepares the data generators.
         The next phase of the evaluator is the evaluation phase (Phase 2).
-        
+
         Specifics
         ---------
-        
+
         The evaluator is prepared by:
         1. Instantiating the each algorithm from the algorithm entries
         2. For each algorithm, train the algorithm with the background data from
@@ -145,17 +141,17 @@ class EvaluatorPipeline(EvaluatorBase):
 
     def _evaluate_step(self):
         """Evaluate performance of the algorithms. (Phase 2)
-        
+
         Summary
         -------
-        
+
         This method evaluates the performance of the algorithms with the metrics.
         It takes the unlabeled data, predicts the interaction, and evaluates the
         performance with the ground truth data.
-        
+
         Specifics
         ---------
-        
+
         The evaluation is done by:
         1. Get the next unlabeled data and ground truth data from the setting
         2. Get the current timestamp from the setting
@@ -168,7 +164,7 @@ class EvaluatorPipeline(EvaluatorBase):
         8. Store the results in the micro metric accumulator
         9. Cache the results in the macro metric accumulator
         10. Repeat step 6 for each algorithm
-        
+
         :raises EOWSettingError: If there is no more data to be processed
         """
         logger.info("Phase 2: Evaluating the algorithms...")
@@ -176,7 +172,7 @@ class EvaluatorPipeline(EvaluatorBase):
             unlabeled_data, ground_truth_data, current_timestamp = self._get_evaluation_data()
         except EOWSettingError as e:
             raise e
-        
+
         # get the top k interaction per user
         X_true = ground_truth_data.get_users_n_first_interaction(self.metric_k)
         X_true = X_true.binary_values
@@ -186,21 +182,21 @@ class EvaluatorPipeline(EvaluatorBase):
 
             for metric_entry in self.metric_entries:
                 metric_cls = METRIC_REGISTRY.get(metric_entry.name)
-                metric:Metric = metric_cls(K=metric_entry.K, timestamp_limit=current_timestamp)
+                metric: Metric = metric_cls(K=metric_entry.K, timestamp_limit=current_timestamp)
                 metric.calculate(X_true, X_pred)
                 self._acc.add(metric=metric, algorithm_name=algo.identifier)
 
-    def _data_release_step(self):
+    def _data_release_step(self) -> None:
         """Data release phase. (Phase 3)
-        
+
         This method releases the data from the evaluator. This method should only
         be called when the setting is a sliding window setting.
-        
+
         The data is released by updating the known user/item base with the
         incremental data. After updating the known user/item base, the incremental
         data is masked to the known user/item base shape. The algorithms are then
         trained with the incremental data.
-        
+
         .. note::
             Previously unknown user/item base is reset after the data release.
             Since these unknown user/item base should be within the incremental
@@ -211,16 +207,16 @@ class EvaluatorPipeline(EvaluatorBase):
         logger.info("Phase 3: Releasing the data...")
 
         incremental_data = self.setting.next_incremental_data()
-        self.user_item_base._reset_unknown_user_item_base()
-        self.user_item_base._update_known_user_item_base(incremental_data)
+        self.user_item_base.reset_unknown_user_item_base()
+        self.user_item_base.update_known_user_item_base(incremental_data)
         incremental_data.mask_shape(self.user_item_base.known_shape)
 
         for algo in self.algorithm:
             algo.fit(incremental_data)
 
-    def run_step(self, reset=False):
+    def run_step(self, reset=False) -> None:
         """Run a single step of the evaluator.
-        
+
         This method runs a single step of the evaluator. The evaluator is split
         into 3 phases. In the first run, all 3 phases are run. In the subsequent
         runs, only the evaluation and data release phase are run. The method
@@ -235,8 +231,9 @@ class EvaluatorPipeline(EvaluatorBase):
 
         self._run_step += 1
         if self._run_step == 1:
-            logger.info(f"There is a total of {self.setting.num_split} steps."
-                        f" Running step {self._run_step}")
+            logger.info(
+                f"There is a total of {self.setting.num_split} steps. Running step {self._run_step}"
+            )
             self._ready_evaluator()
             logger.info(f"Evaluator ready...")
             self._evaluate_step()
@@ -244,16 +241,18 @@ class EvaluatorPipeline(EvaluatorBase):
             return
 
         if self._run_step > self.setting.num_split:
-            logger.info(f"Finished running all steps, call `run_step(reset=True)` to run the evaluation again")
+            logger.info(
+                f"Finished running all steps, call `run_step(reset=True)` to run the evaluation again"
+            )
             warn(f"Running this method again will not have any effect.")
             return
         logger.info(f"Running step {self._run_step}")
         self._evaluate_step()
         self._data_release_step()
 
-    def run_steps(self, num_steps:int):
+    def run_steps(self, num_steps: int) -> None:
         """Run multiple steps of the evaluator.
-        
+
         Effectively runs :meth:`run_step` method :param:`num_steps` times. Call
         this method to run multiple steps of the evaluator at once.
 
@@ -261,11 +260,11 @@ class EvaluatorPipeline(EvaluatorBase):
         :type num_steps: int
         """
         for _ in tqdm(range(num_steps)):
-            self.run_step()      
+            self.run_step()
 
-    def run(self):
+    def run(self) -> None:
         """Run the evaluator across all steps and splits
-        
+
         Runs all 3 phases across all splits (if there are multiple splits).
         This method should be called when the programmer wants to step through
         all phases and splits to arrive to the metrics computed. An alternative
