@@ -1,7 +1,7 @@
 import logging
 import time
 from abc import ABC, abstractmethod
-from typing import Any, Generator, Optional, Union
+from typing import Any, Generator, Optional, Self, Union
 from warnings import warn
 
 import numpy as np
@@ -35,28 +35,23 @@ class Setting(ABC):
 
     def __init__(
         self,
-        seed: Optional[int] = None,
+        seed: int = 42,
     ) -> None:
         """Initialize the setting.
 
         Args:
             seed: Random seed for reproducibility.
         """
-        if seed is None:
-            # Set seed if it was not set before.
-            seed = np.random.get_state()[1][0]
         self.seed = seed
-
         self.prediction_data_processor = PredictionDataProcessor()
-
         self._num_split_set = 1
 
         self._sliding_window_setting = False
         self._split_complete = False
         """Number of splits created from sliding window. Defaults to 1 (no splits on training set)."""
         self._num_full_interactions: int
-        self._unlabeled_data: Union[InteractionMatrix, list[InteractionMatrix]]
-        self._ground_truth_data: Union[InteractionMatrix, list[InteractionMatrix]]
+        self._unlabeled_data: InteractionMatrix | list[InteractionMatrix]
+        self._ground_truth_data: InteractionMatrix | list[InteractionMatrix]
         """Data containing the ground truth interactions to :attr:`_unlabeled_data`. If :class:`SlidingWindowSetting`, then it will be a list of :class:`InteractionMatrix`."""
         self._incremental_data: list[InteractionMatrix]
         """Data that is used to incrementally update the model. Unique to :class:`SlidingWindowSetting`."""
@@ -309,127 +304,6 @@ class Setting(ABC):
                 check_empty(f"Ground truth data[{dataset_idx}]", n_ground_truth)
         logger.debug("Size of split sets are checked.")
 
-    def _create_generator(self, attribute: str) -> Any:
-        """Create generator for the specified attribute.
-
-        Args:
-            attribute: Name of the attribute to generate.
-
-        Yields:
-            Data from the attribute.
-        """
-        if not self._sliding_window_setting:
-            yield getattr(self, attribute)
-        else:
-            for data in getattr(self, attribute):
-                yield data
-
-    def _unlabeled_data_generator(self) -> None:
-        """Generates unlabeled data.
-
-        Allow for iteration over the unlabeled data. If the setting is a
-        sliding window setting, then it will iterate over the list of unlabeled
-        data.
-
-        Note:
-            A private method is specifically created to abstract the creation of
-            the generator and to allow for easy resetting when needed.
-        """
-        self.unlabeled_data_iter: Generator[InteractionMatrix] = self._create_generator(
-            "_unlabeled_data"
-        )
-
-    def _incremental_data_generator(self) -> None:
-        """Generates incremental data.
-
-        Allow for iteration over the incremental data. If the setting is a
-        sliding window setting, then it will iterate over the list of incremental
-        data.
-
-        Note:
-            A private method is specifically created to abstract the creation of
-            the generator and to allow for easy resetting when needed.
-        """
-        self.incremental_data_iter: Generator[InteractionMatrix] = self._create_generator(
-            "_incremental_data"
-        )
-
-    def _ground_truth_data_generator(self) -> None:
-        """Generates ground truth data.
-
-        Allow for iteration over the ground truth data. If the setting is a
-        sliding window setting, then it will iterate over the list of ground
-        truth data.
-
-        Note:
-            A private method is specifically created to abstract the creation of
-            the generator and to allow for easy resetting when needed.
-        """
-        self.ground_truth_data_iter: Generator[InteractionMatrix] = self._create_generator(
-            "_ground_truth_data"
-        )
-
-    def _next_t_window_generator(self) -> None:
-        """Generates t_window data.
-
-        Allow for iteration over the t_window data. If the setting is a
-        sliding window setting, then it will iterate over the list of data
-        timestamp limit.
-
-        Note:
-            A private method is specifically created to abstract the creation of
-            the generator and to allow for easy resetting when needed.
-        """
-        self.t_window_iter: Generator[int] = self._create_generator("_t_window")
-
-    def next_unlabeled_data(self, reset: bool = False) -> InteractionMatrix:
-        """Get the next unlabeled data.
-
-        Get the next unlabeled data for the corresponding split.
-        If the setting is a sliding window setting, then it will iterate over
-        the list of unlabeled data.
-
-        Args:
-            reset: Whether to reset the generator. Defaults to False.
-
-        Returns:
-            Next unlabeled data for the corresponding split.
-
-        Raises:
-            EOWSettingError: If there is no more data to iterate over.
-        """
-        if reset or not hasattr(self, "unlabeled_data_iter"):
-            self._unlabeled_data_generator()
-
-        try:
-            return next(self.unlabeled_data_iter)
-        except StopIteration:
-            raise EOWSettingError()
-
-    def next_ground_truth_data(self, reset: bool = False) -> InteractionMatrix:
-        """Get the next ground truth data.
-
-        Get the next ground truth data for the corresponding split.
-        If the setting is a sliding window setting, then it will iterate over
-        the list of ground truth data.
-
-        Args:
-            reset: Whether to reset the generator. Defaults to False.
-
-        Returns:
-            Next ground truth data for the corresponding split.
-
-        Raises:
-            EOWSettingError: If there is no more data to iterate over.
-        """
-        if reset or not hasattr(self, "ground_truth_data_iter"):
-            self._ground_truth_data_generator()
-
-        try:
-            return next(self.ground_truth_data_iter)
-        except StopIteration:
-            raise EOWSettingError()
-
     def next_incremental_data(self, reset: bool = False) -> InteractionMatrix:
         """Get the next incremental data.
 
@@ -457,87 +331,116 @@ class Setting(ABC):
         except StopIteration:
             raise EOWSettingError()
 
-    # ? t_window_data
-    def next_t_window(self, reset: bool = False) -> int:
-        """Get the next data timestamp limit.
-
-        Get the next upper timestamp limit for the corresponding split.
-        If the setting is a sliding window setting, then it will iterate over
-        the list of timestamps that specify the timestamp cut off for the data.
-
-        Args:
-            reset: Whether to reset the generator. Defaults to False.
-
-        Returns:
-            Next timestamp window for the corresponding split.
-
-        Raises:
-            EOWSettingError: If there is no more data to iterate over.
-        """
-        if reset or not hasattr(self, "t_window_iter"):
-            self._next_t_window_generator()
-
-        try:
-            return next(self.t_window_iter)
-        except StopIteration:
-            raise EOWSettingError()
-
-    def reset_data_generators(self) -> None:
-        """Reset data generators.
-
-        Resets the data generators to the beginning of the
-        data series. API allows the programmer to reset the data generators
-        of the setting object to the beginning of the data series.
-        """
-        logger.debug("Resetting data generators.")
-        self._unlabeled_data_generator()
-        self._ground_truth_data_generator()
-        self._next_t_window_generator()
-        self._incremental_data_generator()
-        logger.debug("Data generators are reset.")
-
-    def destruct_generators(self) -> None:
-        """Destruct data generators.
-
-        Destructs the data generators of the setting object. This method is
-        useful when the setting object needs to be be pickled or saved to disk.
-        """
-        logger.debug("Destructing data generators.")
-        if hasattr(self, "unlabeled_data_iter"):
-            del self.unlabeled_data_iter
-        if hasattr(self, "ground_truth_data_iter"):
-            del self.ground_truth_data_iter
-        if hasattr(self, "t_window_iter"):
-            del self.t_window_iter
-        if hasattr(self, "incremental_data_iter"):
-            del self.incremental_data_iter
-        logger.debug("Data generators are destructed.")
-
-    def restore_generators(self, n: Optional[int] = None) -> None:
-        """Restore data generators.
-
-        Restores the data generators of the setting object. If :param:`n` is
-        provided, then it will restore the data generators to the iteration
-        number :param:`n`. If :param:`n` is not provided, then it will restore
-        the data generators to the beginning of the data series.
+    def restore(self, n: int = 0) -> None:
+        """Restore last run.
 
         Args:
             n: Iteration number to restore to. If None, restores to beginning.
         """
-        if n is None:
-            n = 0
+        logger.debug(f"Restoring setting to iteration {n}")
+        self.current_index = n
 
-        logger.debug("Restoring data generators.")
-        self.reset_data_generators()
-        if n > 0:
-            # the incremental data is always 1 window behind the other windows
-            # as it is supposed to release historical data
-            self.unlabeled_data_iter.__next__()
-            self.ground_truth_data_iter.__next__()
-            self.t_window_iter.__next__()
-            for _ in range(n - 1):
-                self.unlabeled_data_iter.__next__()
-                self.ground_truth_data_iter.__next__()
-                self.incremental_data_iter.__next__()
-                self.t_window_iter.__next__()
-        logger.debug(f"Data generators are restored to iter={n}.")
+    def __iter__(self) -> Self:
+        """Iterate over splits in the setting.
+
+        Resets the index and returns self as the iterator.
+        Yields a dict for each split: {'unlabeled', 'ground_truth', 't_window', 'incremental'}.
+        """
+        self.current_index = 0
+        return self
+
+    def __next__(self) -> dict:
+        """Get the next split.
+
+        Returns:
+            Dict with split data.
+
+        Raises:
+            StopIteration: If no more splits.
+        """
+        if self.current_index >= self.num_split:
+            raise StopIteration
+
+        if self._sliding_window_setting:
+            if (
+                not isinstance(self._unlabeled_data, list)
+                or not isinstance(self._ground_truth_data, list)
+                or not isinstance(self._t_window, list)
+            ):
+                raise ValueError("Expected list of InteractionMatrix for sliding window setting.")
+            result = {
+                "unlabeled": self._unlabeled_data[self.current_index],
+                "ground_truth": self._ground_truth_data[self.current_index],
+                "t_window": self._t_window[self.current_index],
+                "incremental": (
+                    self._incremental_data[self.current_index]
+                    if self.current_index < len(self._incremental_data)
+                    else None
+                ),
+            }
+        else:
+            if (
+                isinstance(self._unlabeled_data, list)
+                or isinstance(self._ground_truth_data, list)
+                or isinstance(self._t_window, list)
+            ):
+                raise ValueError("Expected single InteractionMatrix for non-sliding window setting.")
+            result = {
+                "unlabeled": self._unlabeled_data,
+                "ground_truth": self._ground_truth_data,
+                "t_window": self._t_window,
+                "incremental": None,
+            }
+
+        self.current_index += 1
+        return result
+
+    def get_split_at(self, index: int) -> dict:
+        """Get the split data at a specific index.
+
+        Args:
+            index: The index of the split to retrieve.
+
+        Returns:
+            Dict with split data: {'unlabeled', 'ground_truth', 't_window', 'incremental'}.
+
+        Raises:
+            IndexError: If index is out of range.
+        """
+        if index < 0 or index >= self.num_split:
+            raise IndexError(f"Index {index} out of range for {self.num_split} splits")
+
+        if self._sliding_window_setting:
+            if (
+                not isinstance(self._unlabeled_data, list)
+                or not isinstance(self._ground_truth_data, list)
+                or not isinstance(self._t_window, list)
+            ):
+                raise ValueError("Expected list of InteractionMatrix for sliding window setting.")
+            result = {
+                "unlabeled": self._unlabeled_data[index],
+                "ground_truth": self._ground_truth_data[index],
+                "t_window": self._t_window[index],
+                "incremental": (
+                    self._incremental_data[index]
+                    if index < len(self._incremental_data)
+                    else None
+                ),
+            }
+        else:
+            if index != 0:
+                raise IndexError("Non-sliding setting has only one split at index 0")
+            if (
+                isinstance(self._unlabeled_data, list)
+                or isinstance(self._ground_truth_data, list)
+                or isinstance(self._t_window, list)
+            ):
+                raise ValueError("Expected single data for non-sliding setting.")
+            result = {
+                "unlabeled": self._unlabeled_data,
+                "ground_truth": self._ground_truth_data,
+                "t_window": self._t_window,
+                "incremental": None,
+            }
+
+        return result
