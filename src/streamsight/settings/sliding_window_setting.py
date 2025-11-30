@@ -6,8 +6,8 @@ import numpy as np
 from tqdm import tqdm
 
 from streamsight.matrix import InteractionMatrix, TimestampAttributeMissingError
-from streamsight.settings import Setting
-from streamsight.settings.splitters import NLastInteractionTimestampSplitter, TimestampSplitter
+from .base import Setting
+from .splitters import NLastInteractionTimestampSplitter, TimestampSplitter
 
 
 logger = logging.getLogger(__name__)

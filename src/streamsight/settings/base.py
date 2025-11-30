@@ -7,8 +7,8 @@ from warnings import warn
 import numpy as np
 
 from streamsight.matrix import InteractionMatrix
-from streamsight.settings.processor import PredictionDataProcessor
-from .base import EOWSettingError
+from .exception import EOWSettingError
+from .processor import PredictionDataProcessor
 
 
 logger = logging.getLogger(__name__)
