@@ -9,7 +9,7 @@ RecSys algorithms.
 
 ## Full Flow Structure
 
-![full-flow](docs/assets/_static/full_flow.png)
+![full-flow](docs/assets/_static/full-flow.png)
 
 [![PyPI Latest Release](https://img.shields.io/pypi/v/streamsight.svg)](https://pypi.org/project/streamsight/)&nbsp;&nbsp;
 [![Docs](https://github.com/hiiamtzekean/streamsight/actions/workflows/pages/pages-build-deployment/badge.svg)](https://github.com/hiiamtzekean/streamsight/)&nbsp;&nbsp;
