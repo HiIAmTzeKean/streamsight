@@ -4,8 +4,8 @@ from warnings import warn
 import numpy as np
 
 from streamsight.matrix import InteractionMatrix, TimestampAttributeMissingError
-from streamsight.settings import Setting
-from streamsight.settings.splitters import (
+from .base import Setting
+from .splitters import (
     NLastInteractionTimestampSplitter,
     TimestampSplitter,
 )

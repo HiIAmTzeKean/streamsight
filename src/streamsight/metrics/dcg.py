@@ -35,13 +35,13 @@ class DCGK(ListwiseMetricK):
     This code is adapted from RecPack :cite:`recpack`
     """
 
-    def _calculate(self, y_true: csr_matrix, y_pred_top_K: csr_matrix) -> None:
+    def _calculate(self, y_true: csr_matrix, y_pred: csr_matrix) -> None:
         # log number of users and ground truth interactions
         logger.debug(f"DCGK compute started - {self.name}")
         logger.debug(f"Number of users: {y_true.shape[0]}")
         logger.debug(f"Number of ground truth interactions: {y_true.nnz}")
 
-        denominator = y_pred_top_K.multiply(y_true)
+        denominator = y_pred.multiply(y_true)
         # Denominator: log2(rank_i + 1)
         denominator.data = np.log2(denominator.data + 1)
         # Binary relevance

@@ -1,8 +1,8 @@
 import logging
 
 from streamsight.matrix import InteractionMatrix
-from streamsight.settings import Setting
-from streamsight.settings.splitters import (
+from .base import Setting
+from .splitters import (
     NLastInteractionSplitter,
 )
 

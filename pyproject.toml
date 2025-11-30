@@ -1,21 +1,30 @@
 [project]
 name = "streamsight"
-version = "2.0.1"
+version = "2.0.5"
 description = "A toolkit for offline evaluation of Recommender Systems."
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 readme = "README.md"
+authors = [{name = "Ng Tze Kean", email = "ngtzekean@gmail.com"}]
+maintainers = [{name = "Ng Tze Kean", email = "ngtzekean@gmail.com"}]
+urls = { "Homepage" = "https://hiiamtzekean.github.io/streamsight/", "Repository" = "https://github.com/ngtzekean/streamsight"}
 keywords = ["recsys", "recommendation", "practical evaluation", "global timeline", "reccomender systems", "data leakage"]
 dependencies = [
     "colorama>=0.4.6",
     "colorlog>=6.10.1",
     "deprecation>=2.1.0",
     "httpx>=0.28.1",
+    "numpy>=1.26.4",
+    "pandas>=2.3.3",
+    "progressbar>=2.5",
+    "pyarrow>=22.0.0",
     "pyfiglet>=1.0.4",
+    "recpack>=0.3.6",
+    "scikit-learn>=1.7.2",
+    "scipy>=1.16.3",
     "simplejson>=3.20.2",
     "tqdm>=4.67.1",
     "typing-extensions>=4.15.0",
     "urllib3>=2.5.0",
-    "progressbar>=2.5",
 ]
 
 [dependency-groups]
@@ -24,15 +33,7 @@ dev = [
     "ipywidgets>=8.1.8",
     "jupyter>=1.1.1",
     "pytest>=9.0.1",
-]
-data = [
-    "numpy>=1.26.4",
-    "pandas>=2.3.3",
-    "pyarrow>=22.0.0",
-]
-ml = [
-    "recpack>=0.3.6",
-    "scikit-learn>=1.7.2",
+    {include-group = "docs"},
 ]
 docs = [
     "mkdocs>=1.6.1",
@@ -42,6 +43,7 @@ docs = [
     "mkdocs-gen-files>=0.6.0",
     "mkdocs-literate-nav>=0.6.2",
     "mkdocs-section-index>=0.3.10",
+    "mkdocs-minify-plugin>=0.8.0",
     "ruff>=0.14.7",
 ]
 

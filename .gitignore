@@ -180,3 +180,4 @@ docs/source/_autosummary/**
 **/logs/**
 **/.python-version
 docs/report/**
+ruff.toml

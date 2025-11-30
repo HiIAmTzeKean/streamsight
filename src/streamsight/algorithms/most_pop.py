@@ -6,6 +6,7 @@ from scipy.sparse import csr_matrix, lil_matrix
 from streamsight.algorithms import Algorithm
 from streamsight.matrix.interaction_matrix import InteractionMatrix
 
+
 class MostPop(Algorithm):
     """A popularity-based algorithm with based on MostPop by accumulating data from earlier time windows.
 
@@ -13,12 +14,12 @@ class MostPop(Algorithm):
     :type K: int, optional
     """
 
-    def __init__(self, K: int = 200):
+    def __init__(self, K: int = 200) -> None:
         super().__init__()
         self.K = K
         self.historical_data: list[csr_matrix] = []  # Store all historical training data
         self.num_items = 0  # Track the maximum number of items seen so far
-    
+
     def _pad_matrix(self, matrix: csr_matrix, new_num_items: int) -> csr_matrix:
         """
         Pad a sparse matrix with zero columns to match the new number of items.
@@ -77,7 +78,7 @@ class MostPop(Algorithm):
             interaction_counts += matrix.sum(axis=0).A[0]
 
         normalized_scores = interaction_counts / interaction_counts.max()
-        
+
         K = min(self.K, num_items)
         ind = np.argpartition(normalized_scores, -K)[-K:]
         a = np.zeros(num_items)
@@ -85,21 +86,23 @@ class MostPop(Algorithm):
         self.sorted_scores_ = a
         return self
 
-    def _predict(self, X: csr_matrix,  predict_im: InteractionMatrix) -> csr_matrix:
+    def _predict(self, X: csr_matrix, predict_im: InteractionMatrix) -> csr_matrix:
         """
         Predict the K most popular item for each user.
 
-        """    
+        """
         if predict_im is None:
-            raise AttributeError("Predict frame with requested ID is required for Popularity algorithm")
+            raise AttributeError(
+                "Predict frame with requested ID is required for Popularity algorithm"
+            )
 
         predict_frame = predict_im._df
 
         users = predict_frame["uid"].unique().tolist()
         known_item_id = X.shape[1]
-        
+
         # predict_frame contains (user_id, -1) pairs
-        max_user_id  = predict_frame["uid"].max() + 1 
+        max_user_id = predict_frame["uid"].max() + 1
         intended_shape = (max(max_user_id, X.shape[0]), known_item_id)
 
         X_pred = lil_matrix(intended_shape)

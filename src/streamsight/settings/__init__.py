@@ -100,12 +100,13 @@ transformations.
 - `EOWSettingError`: Raised when end of window is reached
 """
 
-from streamsight.settings.base import EOWSettingError, Setting
-from streamsight.settings.leave_n_out_setting import LeaveNOutSetting
-from streamsight.settings.processor import PredictionDataProcessor, Processor
-from streamsight.settings.single_time_point_setting import SingleTimePointSetting
-from streamsight.settings.sliding_window_setting import SlidingWindowSetting
-from streamsight.settings.splitters import (
+from .base import Setting
+from .exception import EOWSettingError
+from .leave_n_out_setting import LeaveNOutSetting
+from .processor import PredictionDataProcessor, Processor
+from .single_time_point_setting import SingleTimePointSetting
+from .sliding_window_setting import SlidingWindowSetting
+from .splitters import (
     NLastInteractionSplitter,
     NLastInteractionTimestampSplitter,
     TimestampSplitter,

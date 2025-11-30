@@ -11,37 +11,38 @@ from scipy.sparse import csr_matrix, lil_matrix
 
 from streamsight.metrics.base import ElementwiseMetricK
 
+
 logger = logging.getLogger(__name__)
 
 
 class HitK(ElementwiseMetricK):
-  """Computes the number of hits in a list of Top-K recommendations.
+    """Computes the number of hits in a list of Top-K recommendations.
 
-  A hit is counted when a recommended item in the top K for this user was interacted with.
+    A hit is counted when a recommended item in the top K for this user was interacted with.
 
-  Detailed :attr:`results` show which of the items in the list of Top-K recommended items
-  were hits and which were not.
+    Detailed :attr:`results` show which of the items in the list of Top-K recommended items
+    were hits and which were not.
 
-    
-  :param K: Size of the recommendation list consisting of the Top-K item predictions.
-  :type K: int
 
-  This code is adapted from RecPack :cite:`recpack`
-  """
+    :param K: Size of the recommendation list consisting of the Top-K item predictions.
+    :type K: int
 
-  def _calculate(self, y_true: csr_matrix, y_pred_top_K: csr_matrix) -> None:
-    # log number of users and ground truth interactions
-    logger.debug(f"HitK compute started - {self.name}")
-    logger.debug(f"Number of users: {y_true.shape[0]}")
-    logger.debug(f"Number of ground truth interactions: {y_true.nnz}")
+    This code is adapted from RecPack :cite:`recpack`
+    """
 
-    scores = lil_matrix(y_pred_top_K.shape)
+    def _calculate(self, y_true: csr_matrix, y_pred: csr_matrix) -> None:
+        # log number of users and ground truth interactions
+        logger.debug(f"HitK compute started - {self.name}")
+        logger.debug(f"Number of users: {y_true.shape[0]}")
+        logger.debug(f"Number of ground truth interactions: {y_true.nnz}")
 
-    # Elementwise multiplication of top K predicts and true interactions
-    scores[y_pred_top_K.multiply(y_true).astype(bool)] = 1
+        scores = lil_matrix(y_pred.shape)
 
-    scores = scores.tocsr()
+        # Elementwise multiplication of top K predicts and true interactions
+        scores[y_pred.multiply(y_true).astype(bool)] = 1
 
-    self._scores = scores
+        scores = scores.tocsr()
 
-    logger.debug(f"HitK compute complete - {self.name}")
+        self._scores = scores
+
+        logger.debug(f"HitK compute complete - {self.name}")

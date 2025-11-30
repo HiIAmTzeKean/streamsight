@@ -1,29 +1,28 @@
 import logging
 import time
-from warnings import warn
 from abc import ABC, abstractmethod
 from typing import Optional
-
-import pandas as pd
+from warnings import warn
 
 import numpy as np
+import pandas as pd
 from scipy.sparse import csr_matrix
 from sklearn.base import BaseEstimator
 from sklearn.utils.validation import check_is_fitted
 
-from streamsight.matrix import (InteractionMatrix, ItemUserBasedEnum,
-                                to_csr_matrix, Matrix)
+from streamsight.matrix import InteractionMatrix, ItemUserBasedEnum, Matrix, to_csr_matrix
 from streamsight.utils.util import add_rows_to_csr_matrix
+
 
 logger = logging.getLogger(__name__)
 
 
-class Algorithm(BaseEstimator,ABC):
+class Algorithm(BaseEstimator, ABC):
     """Base class for all streamsight algorithm implementations."""
 
     ITEM_USER_BASED: ItemUserBasedEnum
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         if not hasattr(self, "seed"):
             self.seed = 42
@@ -32,7 +31,7 @@ class Algorithm(BaseEstimator,ABC):
     @property
     def name(self) -> str:
         """Name of the object's class.
-        
+
         :return: Name of the object's class
         :rtype: str
         """
@@ -47,17 +46,17 @@ class Algorithm(BaseEstimator,ABC):
 
         Constructed by recreating the initialisation call.
         Example: `Algorithm(param_1=value)`
-        
+
         :return: Identifier of the object
         :rtype: str
         """
         paramstring = ",".join((f"{k}={v}" for k, v in self.get_params().items()))
         return self.name + "(" + paramstring + ")"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
-    def set_params(self, **params):
+    def set_params(self, **params) -> None:
         """Set the parameters of the estimator.
 
         :param params: Estimator parameters
@@ -79,7 +78,7 @@ class Algorithm(BaseEstimator,ABC):
         raise NotImplementedError("Please implement _fit")
 
     @abstractmethod
-    def _predict(self, X: csr_matrix, predict_frame:Optional[pd.DataFrame]=None) -> csr_matrix:
+    def _predict(self, X: csr_matrix, predict_frame: Optional[pd.DataFrame] = None) -> csr_matrix:
         """Stub for predicting scores to users
 
         Will be called by the `predict` wrapper.
@@ -95,7 +94,7 @@ class Algorithm(BaseEstimator,ABC):
         """
         raise NotImplementedError("Please implement _predict")
 
-    def _check_fit_complete(self):
+    def _check_fit_complete(self) -> None:
         """Helper function to check if model was correctly fitted
 
         Uses the sklearn check_is_fitted function,
@@ -133,11 +132,13 @@ class Algorithm(BaseEstimator,ABC):
             if type(X) != InteractionMatrix:
                 raise TypeError(f"{self.name} requires Interaction Matrix as input. Got {type(X)}.")
 
-    def _assert_has_timestamps(self, *matrices: InteractionMatrix):
+    def _assert_has_timestamps(self, *matrices: InteractionMatrix) -> None:
         """Make sure that the matrices all have timestamp information."""
         for X in matrices:
             if not X.has_timestamps:
-                raise ValueError(f"{self.name} requires timestamp information in the InteractionMatrix.")
+                raise ValueError(
+                    f"{self.name} requires timestamp information in the InteractionMatrix."
+                )
 
     def fit(self, X: InteractionMatrix) -> "Algorithm":
         """Fit the model to the input interaction matrix.
@@ -158,7 +159,7 @@ class Algorithm(BaseEstimator,ABC):
 
         self._check_fit_complete()
         end = time.time()
-        logger.debug(f"Fitting {self.name} complete - Took {end - start :.3}s")
+        logger.debug(f"Fitting {self.name} complete - Took {end - start:.3}s")
         return self
 
     def _pad_predict(
@@ -182,9 +183,7 @@ class Algorithm(BaseEstimator,ABC):
             return X_pred
 
         known_user_id, known_item_id = X_pred.shape
-        X_pred = add_rows_to_csr_matrix(
-            X_pred, intended_shape[0] - known_user_id
-        )
+        X_pred = add_rows_to_csr_matrix(X_pred, intended_shape[0] - known_user_id)
         # pad users with random items
         logger.debug(
             f"Padding user ID in range({known_user_id}, {intended_shape[0]}) with random items"
@@ -250,6 +249,7 @@ class Algorithm(BaseEstimator,ABC):
 
         # return self._pad_predict(X_pred, intended_shape, to_predict_frame._df)
 
+
 class ItemSimilarityMatrixAlgorithm(Algorithm):
     """Base algorithm for algorithms that fit an item to item similarity model
 
@@ -312,6 +312,7 @@ class ItemSimilarityMatrixAlgorithm(Algorithm):
         missing = self.similarity_matrix_.shape[0] - len(items_with_score)
         if missing > 0:
             warn(f"{self.name} missing similar items for {missing} items.")
+
 
 class TopKItemSimilarityMatrixAlgorithm(ItemSimilarityMatrixAlgorithm):
     """Base algorithm for algorithms that fit an item to item similarity model with K similar items for every item

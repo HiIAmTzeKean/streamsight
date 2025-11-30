@@ -6,8 +6,8 @@ import numpy as np
 from tqdm import tqdm
 
 from streamsight.matrix import InteractionMatrix, TimestampAttributeMissingError
-from streamsight.settings import Setting
-from streamsight.settings.splitters import NLastInteractionTimestampSplitter, TimestampSplitter
+from .base import Setting
+from .splitters import NLastInteractionTimestampSplitter, TimestampSplitter
 
 
 logger = logging.getLogger(__name__)
@@ -64,7 +64,7 @@ class SlidingWindowSetting(Setting):
         t_upper: int = np.iinfo(np.int32).max,
         t_ground_truth_window: Optional[int] = None,
         seed: Optional[int] = None,
-    ):
+    ) -> None:
         super().__init__(seed=seed)
         self._sliding_window_setting = True
         self.t = background_t
