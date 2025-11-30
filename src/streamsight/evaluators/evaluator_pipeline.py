@@ -1,15 +1,14 @@
 import logging
-from typing import List, Optional
 from warnings import warn
 
 from tqdm import tqdm
 
 from streamsight.algorithms import Algorithm
-from streamsight.evaluators.accumulator import MetricAccumulator
-from streamsight.evaluators.base import EvaluatorBase
 from streamsight.metrics import Metric
 from streamsight.registries import ALGORITHM_REGISTRY, METRIC_REGISTRY, AlgorithmEntry, MetricEntry
 from streamsight.settings import EOWSettingError, Setting
+from .accumulator import MetricAccumulator
+from .base import EvaluatorBase
 
 
 logger = logging.getLogger(__name__)
@@ -58,25 +57,30 @@ class EvaluatorPipeline(EvaluatorBase):
 
     def __init__(
         self,
-        algorithm_entries: List[AlgorithmEntry],
-        metric_entries: List[MetricEntry],
+        algorithm_entries: list[AlgorithmEntry],
+        metric_entries: list[MetricEntry],
         setting: Setting,
         metric_k: int,
         ignore_unknown_user: bool = True,
         ignore_unknown_item: bool = True,
-        seed: Optional[int] = None,
+        seed: int = 42,
     ):
         super().__init__(
-            metric_entries, setting, metric_k, ignore_unknown_user, ignore_unknown_item, seed
+            metric_entries=metric_entries,
+            setting=setting,
+            metric_k=metric_k,
+            ignore_unknown_user=ignore_unknown_user,
+            ignore_unknown_item=ignore_unknown_item,
+            seed=seed,
         )
 
         self.algorithm_entries = algorithm_entries
-        self.algorithm: List[Algorithm]
+        self.algorithm: list[Algorithm]
 
         # internal state
         self._current_timestamp: int
 
-    def _instantiate_algorithm(self):
+    def _instantiate_algorithm(self) -> None:
         """Instantiate the algorithms from the algorithm entries.
 
         This method instantiates the algorithms and stores them in :attr:`algorithm`.
@@ -131,15 +135,15 @@ class EvaluatorPipeline(EvaluatorBase):
         logger.info("Phase 1: Preparing the evaluator...")
         self._instantiate_algorithm()
         self._ready_algo()
-        logger.debug(f"Algorithms trained with background data...")
+        logger.debug("Algorithms trained with background data...")
 
         self._acc = MetricAccumulator()
-        logger.debug(f"Metric accumulator instantiated...")
+        logger.debug("Metric accumulator instantiated...")
 
-        self.setting.reset_data_generators()
-        logger.debug(f"Setting data generators ready...")
+        self.setting.restore()
+        logger.debug("Setting data generators ready...")
 
-    def _evaluate_step(self):
+    def _evaluate_step(self) -> None:
         """Evaluate performance of the algorithms. (Phase 2)
 
         Summary
@@ -206,7 +210,7 @@ class EvaluatorPipeline(EvaluatorBase):
             return
         logger.info("Phase 3: Releasing the data...")
 
-        incremental_data = self.setting.next_incremental_data()
+        incremental_data = self.setting.get_split_at(self._run_step)['incremental']
         self.user_item_base.reset_unknown_user_item_base()
         self.user_item_base.update_known_user_item_base(incremental_data)
         incremental_data.mask_shape(self.user_item_base.known_shape)
@@ -235,16 +239,16 @@ class EvaluatorPipeline(EvaluatorBase):
                 f"There is a total of {self.setting.num_split} steps. Running step {self._run_step}"
             )
             self._ready_evaluator()
-            logger.info(f"Evaluator ready...")
+            logger.info("Evaluator ready...")
             self._evaluate_step()
             self._data_release_step()
             return
 
         if self._run_step > self.setting.num_split:
             logger.info(
-                f"Finished running all steps, call `run_step(reset=True)` to run the evaluation again"
+                "Finished running all steps, call `run_step(reset=True)` to run the evaluation again"
             )
-            warn(f"Running this method again will not have any effect.")
+            warn("Running this method again will not have any effect.")
             return
         logger.info(f"Running step {self._run_step}")
         self._evaluate_step()

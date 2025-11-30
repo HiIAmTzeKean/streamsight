@@ -74,7 +74,7 @@ class TestFullRun:
 
         evaluator.start_stream()
 
-        data = evaluator.get_data(algo_id)
+        data = evaluator.get_training_data(algo_id)
         algo.fit(data)
 
         unlabeled_data = evaluator.get_unlabeled_data(algo_id)

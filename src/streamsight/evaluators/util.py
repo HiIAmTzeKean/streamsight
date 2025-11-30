@@ -1,7 +1,6 @@
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Tuple
 from uuid import UUID
 
 from streamsight.matrix import InteractionMatrix
@@ -19,10 +18,13 @@ class MetricLevelEnum(StrEnum):
 
     @classmethod
     def has_value(cls, value: str) -> bool:
-        """Check valid value for MetricLevelEnum
+        """Check valid value for MetricLevelEnum.
 
-        :param value: String value input
-        :type value: str
+        Args:
+            value: String value input.
+
+        Returns:
+            Whether the value is valid.
         """
         return value in MetricLevelEnum
 
@@ -36,26 +38,26 @@ class UserItemBaseStatus:
     methods to update the known and unknown user and item set.
     """
 
-    unknown_user: set[int] = set()
-    known_user: set[int] = set()
-    unknown_item: set[int] = set()
-    known_item: set[int] = set()
+    unknown_user: set[int] = field(default_factory=set)
+    known_user: set[int] = field(default_factory=set)
+    unknown_item: set[int] = field(default_factory=set)
+    known_item: set[int] = field(default_factory=set)
 
     @property
-    def known_shape(self) -> Tuple[int, int]:
+    def known_shape(self) -> tuple[int, int]:
         """Known shape of the user-item interaction matrix.
 
         This is the shape of the released user/item interaction matrix to the
         algorithm. This shape follows from assumption in the dataset that
         ID increment in the order of time.
 
-        :return: Tuple of (`|user|`, `|item|`)
-        :rtype: Tuple[int, int]
+        Returns:
+            Tuple of (|user|, |item|).
         """
         return (len(self.known_user), len(self.known_item))
 
     @property
-    def global_shape(self) -> Tuple[int, int]:
+    def global_shape(self) -> tuple[int, int]:
         """Global shape of the user-item interaction matrix.
 
         This is the shape of the user-item interaction matrix considering all
@@ -64,8 +66,8 @@ class UserItemBaseStatus:
         prediction stage when an unknown user/item id is requested for prediction
         on the algorithm.
 
-        :return: Tuple of (`|user|`, `|item|`)
-        :rtype: Tuple[int, int]
+        Returns:
+            Tuple of (|user|, |item|).
         """
         return (
             len(self.known_user) + len(self.unknown_user),
@@ -79,8 +81,8 @@ class UserItemBaseStatus:
         Returns the set of global user ids. The global user ids are the union of
         known and unknown user ids.
 
-        :return: Set of global user ids.
-        :rtype: set
+        Returns:
+            set[int]: Set of global user ids.
         """
         return self.known_user.union(self.unknown_user)
 
@@ -91,21 +93,26 @@ class UserItemBaseStatus:
         Returns the set of global item ids. The global item ids are the union of
         known and unknown item ids.
 
-        :return: Set of global item ids.
-        :rtype: set
+        Returns:
+            set[int]: Set of global item ids.
         """
         return self.known_item.union(self.unknown_item)
 
     def update_known_user_item_base(self, data: InteractionMatrix) -> None:
         """Updates the known user and item set with the data.
 
-        :param data: Data to update the known user and item set with.
-        :type data: InteractionMatrix
+        Args:
+            data (InteractionMatrix): Data to update the known user and item set with.
         """
         self.known_item.update(data.item_ids)
         self.known_user.update(data.user_ids)
 
     def update_unknown_user_item_base(self, data: InteractionMatrix) -> None:
+        """Updates the unknown user and item set with the data.
+
+        Args:
+            data (InteractionMatrix): Data to update the unknown user and item set with.
+        """
         self.unknown_user = data.user_ids.difference(self.known_user)
         self.unknown_item = data.item_ids.difference(self.known_item)
 
@@ -120,32 +127,53 @@ class UserItemBaseStatus:
 
 
 class AlgorithmStatusWarning(UserWarning):
-    def __init__(self, algo_id: UUID, status: AlgorithmStateEnum, phase: str):
+    """Warning for algorithm status issues.
+
+    This warning is raised when an algorithm is in an inappropriate state
+    for a requested operation.
+    """
+
+    def __init__(self, algo_id: UUID, status: AlgorithmStateEnum, phase: str) -> None:
+        """Initialize the warning with algorithm details.
+
+        Args:
+            algo_id (UUID): The algorithm's unique identifier.
+            status (AlgorithmStateEnum): The current status of the algorithm.
+            phase (str): The phase where the issue occurred.
+        """
         self.algo_id = algo_id
         self.status = status
         if phase == "data_release":
             super().__init__(
-                f"Algorithm:{algo_id} current status is {status}. Algorithm has already requested for data. Returning the same data again."
+                f"Algorithm:{algo_id} current status is {status}. "
+                "Algorithm has already requested for data. "
+                "Returning the same data again."
             )
         elif phase == "unlabeled":
             super().__init__(
-                f"Algorithm:{algo_id} not ready to get unlabeled data, current status is {status}. Call get_data() first."
+                f"Algorithm:{algo_id} not ready to get unlabeled data, "
+                f"current status is {status}. Call get_training_data() first."
             )
         elif phase == "predict_complete":
             super().__init__(
-                f"Algorithm:{algo_id} current status is {status}. Algorithm already submitted prediction"
+                f"Algorithm:{algo_id} current status is {status}. "
+                "Algorithm already submitted prediction"
             )
         elif phase == "predict":
             super().__init__(
-                f"Algorithm:{algo_id} current status is {status}. Algorithm should request for unlabeled data first."
+                f"Algorithm:{algo_id} current status is {status}. "
+                "Algorithm should request for unlabeled data first."
             )
         elif phase == "complete":
             super().__init__(
-                f"Algorithm:{algo_id} current status is {status}. Algorithm has completed stream evaluation. No more data release available."
+                f"Algorithm:{algo_id} current status is {status}. "
+                "Algorithm has completed stream evaluation. "
+                "No more data release available."
             )
         elif phase == "not_all_predicted":
             super().__init__(
-                f"Algorithm {algo_id} has already predicted for this data segment, please wait for all other algorithms to predict"
+                f"Algorithm {algo_id} has already predicted for this data segment, "
+                "please wait for all other algorithms to predict"
             )
         else:
             super().__init__(f"Algorithm:{algo_id} current status is {status}.")
