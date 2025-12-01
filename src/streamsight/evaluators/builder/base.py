@@ -45,28 +45,6 @@ class Builder(ABC):
         self.ignore_unknown_item = ignore_unknown_item
         """Ignore unknown item in the evaluation"""
         self.metric_k: int
-        if not seed:
-            seed = 42
-        self.seed: int = seed
-        """Initialize the Builder.
-
-        Args:
-            ignore_unknown_user: Ignore unknown user in the evaluation.
-            ignore_unknown_item: Ignore unknown item in the evaluation.
-            seed: Random seed for reproducibility.
-        """
-        self.metric_entries: dict[str, MetricEntry] = dict()
-        """dict of metrics to evaluate algorithm on.
-        Using dict instead of list for fast lookup"""
-        self.setting: Setting
-        """Setting to evaluate the algorithms on"""
-        self.ignore_unknown_user = ignore_unknown_user
-        """Ignore unknown user in the evaluation"""
-        self.ignore_unknown_item = ignore_unknown_item
-        """Ignore unknown item in the evaluation"""
-        self.metric_k: int
-        if not seed:
-            seed = 42
         self.seed: int = seed
 
     def _check_setting_exist(self) -> bool:
