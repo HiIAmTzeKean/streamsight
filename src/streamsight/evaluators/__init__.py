@@ -1,111 +1,206 @@
-"""
-.. currentmodule:: streamsight.evaluators
+"""Evaluator module for algorithm evaluation in streaming settings.
+
+This module provides classes and utilities for evaluating recommendation algorithms
+in streaming environments. It supports both batch pipeline evaluation and interactive
+streaming evaluation with comprehensive metric computation and result analysis.
 
 Evaluator Builder
-----------------------------
+=================
 
-The evaluator module in streamsight contains the Builder class which is
-used to build an evaluator object. :class:`Builder` allows the programmer
-to add algorithms, metrics and settings to the evaluator object before the
-:class:`Evaluator` object is built.
+The evaluator module contains builder classes for constructing evaluator objects.
+The builders provide a fluent API for configuring evaluators with proper validation
+and error checking.
 
-It is recommended to initialise the :class:`Evaluator` object with the :class:`Builder`
-as it provides the API for the needed configurations. Beyond the API for the configurations,
-the builder checks for the validity of the configurations and raises exceptions if the
-configurations are invalid. The programmer can choose to build the :class:`Evaluator` object
-without the :class:`Builder` as described below but might face exceptions if the
-configurations are invalid.
+For detailed information about the builder classes and usage examples,
+see the `streamsight.evaluators.builder` module.
 
-.. note::
-    We use the term :class:`Builder` here to refer to the class intendede to build
-    the evaluator object, but this is a abstract class. The programmer
-    should use either :class:`EvaluatorPipelineBuilder` or
-    :class:`EvaluatorStreamerBuilder` as the builder.
+Available Builders:
+- `Builder`: Abstract base class for all builder implementations
+- `EvaluatorPipelineBuilder`: Builder for pipeline evaluators
+- `EvaluatorStreamerBuilder`: Builder for streaming evaluators
 
-The adding of new algorithms through :meth:`add_algorithm` and metrics through :meth:`add_metric`
-are made such that it can be done through the class type via importing the class or 
-thorough specifying the class name as a string.
+Evaluator Classes
+=================
 
-.. autosummary::
-    :toctree: generated/
+The core evaluator classes handle the evaluation of recommendation algorithms
+on streaming data. The evaluators manage data splitting, algorithm training,
+prediction generation, and metric computation.
 
-    Builder
-    EvaluatorPipelineBuilder
-    EvaluatorStreamerBuilder
+EvaluatorPipeline
+-----------------
 
-Example
-~~~~~~~~~
+For batch evaluation of multiple algorithms on static or sliding window settings.
+This evaluator runs algorithms through a complete pipeline including training,
+prediction, and evaluation phases.
 
-Below is a typical example of how to use the :class:`Builder` to build an
-:class:`Evaluator` object. This example also follows from the example in the
-python notebook.
+EvaluatorStreamer
+-----------------
 
-.. code-block:: python
+For interactive streaming evaluation where algorithms can be registered and
+evaluated in real-time as data streams in. This allows for more flexible
+evaluation scenarios where algorithms can request data and submit predictions
+asynchronously.
 
-    from streamsight.evaluator import EvaluatorPipelineBuilder
-    
-    builder = EvaluatorPipelineBuilder(item_user_based="item",
-                        ignore_unknown_user=True,
-                        ignore_unknown_item=True)
-    builder.add_setting(setting) # assuming setting is already defined
-    builder.add_algorithm("ItemKNNIncremental", {"K": 10})
-    builder.add_metric("PrecisionK")
-    evaluator = builder.build()
+Both evaluators inherit from `EvaluatorBase` which provides common functionality
+for metric computation, data masking, and result aggregation.
 
-    evaluator.run()
+Key Features
+------------
 
-Evaluator
-----------------------------
+- **Multi-algorithm evaluation**: Evaluate multiple algorithms simultaneously
+- **Streaming support**: Handle temporal data streams with sliding windows
+- **Metric aggregation**: Compute metrics at different levels (user, window, macro, micro)
+- **Data masking**: Properly handle unknown users and items during evaluation
+- **Result analysis**: Rich DataFrame outputs for metric analysis and comparison
 
-The evaluator module in streamsight contains the evaluators which allows the
-programmer to evaluate the algorithms on a fixed setting. The evaluator also
-aids the programmer in masking the shape of the dataset and then subsequently
-computing the metric for each prediction against the ground truth. There are
-2 concrete implementation of :class:`Evaluator`. The programmer can refer to the
-actual implementation of the :class:`Evaluator` to understand the internal
-workings of the evaluator and to view the schematic diagram of the implementation.
+Basic Usage
+-----------
 
-.. autosummary::
-    :toctree: generated/
+Pipeline Evaluation:
 
-    EvaluatorBase
-    EvaluatorPipeline
-    EvaluatorStreamer
+```python
+from streamsight.evaluators import EvaluatorPipeline
+from streamsight.evaluators.builder import EvaluatorPipelineBuilder
+from streamsight.settings import Setting
+from streamsight.datasets import AmazonMusicDataset
 
+# Load data and create setting
+dataset = AmazonMusicDataset()
+data = dataset.load()
+setting = Setting(data=data, top_K=10)
+setting.split()
+
+# Build evaluator
+builder = EvaluatorPipelineBuilder()
+builder.add_setting(setting)
+builder.set_metric_K(10)
+builder.add_metric("PrecisionK")
+builder.add_algorithm("MostPop")
+evaluator = builder.build()
+
+# Run evaluation
+evaluator.run()
+
+# Get results
+results = evaluator.metric_results(level="macro")
+```
+
+Streaming Evaluation:
+
+```python
+from streamsight.evaluators import EvaluatorStreamer
+from streamsight.evaluators.builder import EvaluatorStreamerBuilder
+from streamsight.algorithms import MostPop
+
+# Build streaming evaluator
+builder = EvaluatorStreamerBuilder()
+builder.add_setting(setting)
+builder.set_metric_K(10)
+builder.add_metric("HitK")
+evaluator = builder.build()
+
+# Start streaming
+evaluator.start_stream()
+
+# Register algorithm
+algo_id = evaluator.register_algorithm(MostPop())
+
+# Stream evaluation loop
+while True:
+    try:
+        # Get training data
+        training_data = evaluator.get_training_data(algo_id)
+
+        # Get unlabeled data
+        unlabeled_data = evaluator.get_unlabeled_data(algo_id)
+
+        # Algorithm makes predictions
+        predictions = algorithm.predict(unlabeled_data)
+
+        # Submit predictions
+        evaluator.submit_prediction(algo_id, predictions)
+
+    except EOWSettingError:
+        break
+```
+
+Metric Levels
+-------------
+
+Evaluators support computing metrics at different aggregation levels:
+
+- **User level**: Metrics computed per user across all timestamps
+- **Window level**: Metrics computed per time window, averaging user scores within each window
+- **Macro level**: Overall metrics averaging across all windows equally
+- **Micro level**: Overall metrics averaging across all user-timestamp combinations equally
+
+Available Evaluator Classes:
+- `EvaluatorBase`: Base class providing common evaluation functionality
+- `EvaluatorPipeline`: Pipeline-based batch evaluator
+- `EvaluatorStreamer`: Interactive streaming evaluator
 
 Accumulator
-----------------------------
+==========
 
-The evaluator module in streamsight contains the Accumulator class which is
-used to accumulate the metrics.
+The `MetricAccumulator` class accumulates and stores metric results during
+evaluation. The accumulator maintains a collection of metric objects organized
+by algorithm name and provides methods for retrieving results in various formats.
 
-.. autosummary::
-    :toctree: generated/
+Features:
+- Storing metrics for multiple algorithms
+- Computing aggregated results at different levels
+- Exporting results to pandas DataFrames
+- Filtering results by algorithm, timestamp, or metric type
 
-    MetricAccumulator
+Utility Classes
+===============
 
-    
-Utility
-----------------------------
+Utility classes that support the evaluation process:
 
-The evaluator module in streamsight contains the utility classes which abstract
-some of the common functionalities used in the evaluator module.
+- `MetricLevelEnum`: Enumeration for different metric aggregation levels
+- `UserItemBaseStatus`: Tracks known and unknown users/items during evaluation
+- `AlgorithmStatusWarning`: Custom warning for algorithm state issues
 
-.. autosummary::
-    :toctree: generated/
-
-    MetricLevelEnum
-    UserItemBaseStatus
-    AlgorithmStatusWarning
+These utilities handle the complex state management required for streaming
+evaluation scenarios.
 """
 
-from streamsight.evaluators.accumulator import MetricAccumulator
-from streamsight.evaluators.base import EvaluatorBase
-from streamsight.evaluators.evaluator_builder import (
+from .accumulator import MetricAccumulator
+from .base import EvaluatorBase
+from .builder import (
     Builder,
     EvaluatorPipelineBuilder,
     EvaluatorStreamerBuilder,
 )
-from streamsight.evaluators.evaluator_pipeline import EvaluatorPipeline
-from streamsight.evaluators.evaluator_stream import EvaluatorStreamer
-from streamsight.evaluators.util import AlgorithmStatusWarning, MetricLevelEnum, UserItemBaseStatus
+from .evaluator_pipeline import EvaluatorPipeline
+from .evaluator_stream import EvaluatorStreamer
+from .util import MetricLevelEnum, UserItemBaseStatus
+from .warning import AlgorithmStatusWarning
+
+
+__all__ = [
+    "Builder",
+    "EvaluatorPipelineBuilder",
+    "EvaluatorStreamerBuilder",
+    "EvaluatorBase",
+    "EvaluatorPipeline",
+    "EvaluatorStreamer",
+    "MetricAccumulator",
+    "MetricLevelEnum",
+    "UserItemBaseStatus",
+    "AlgorithmStatusWarning",
+]
+
+
+__all__ = [
+    "Builder",
+    "EvaluatorPipelineBuilder",
+    "EvaluatorStreamerBuilder",
+    "EvaluatorBase",
+    "EvaluatorPipeline",
+    "EvaluatorStreamer",
+    "MetricAccumulator",
+    "MetricLevelEnum",
+    "UserItemBaseStatus",
+    "AlgorithmStatusWarning",
+]

@@ -5,11 +5,11 @@ from typing import Literal, Optional, Union
 import pandas as pd
 from scipy.sparse import csr_matrix
 
-from streamsight.evaluators.accumulator import MetricAccumulator
-from streamsight.evaluators.util import MetricLevelEnum, UserItemBaseStatus
 from streamsight.matrix import InteractionMatrix
 from streamsight.registries import MetricEntry
 from streamsight.settings import EOWSettingError, Setting
+from .accumulator import MetricAccumulator
+from .util import MetricLevelEnum, UserItemBaseStatus
 
 
 logger = logging.getLogger(__name__)
@@ -59,11 +59,11 @@ class EvaluatorBase(object):
         Internal method to get the evaluation data for the current step. The
         evaluation data consists of the unlabeled data, ground truth data, and
         the current timestamp which will be returned as a tuple. The shapes
-        are masked based through :attr:`user_item_base`. The unknown users in
-        the ground truth data are also updated in :attr:`user_item_base`.
+        are masked based through `user_item_base`. The unknown users in
+        the ground truth data are also updated in `user_item_base`.
 
         Note:
-            :attr:`_current_timestamp` is updated with the current timestamp.
+            `_current_timestamp` is updated with the current timestamp.
 
         Returns:
             Tuple of unlabeled data, ground truth data, and current timestamp.
@@ -107,7 +107,7 @@ class EvaluatorBase(object):
 
         If there is a difference in the shape of the prediction matrix and the
         ground truth matrix, this function will handle the difference based on
-        :attr:`ignore_unknown_user` and :attr:`ignore_unknown_item`.
+        `ignore_unknown_user` and `ignore_unknown_item`.
 
         Args:
             X_true_shape: Shape of the ground truth matrix.

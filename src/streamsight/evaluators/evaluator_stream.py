@@ -20,7 +20,7 @@ from streamsight.registries import (
 from streamsight.settings import EOWSettingError, Setting
 from .accumulator import MetricAccumulator
 from .base import EvaluatorBase
-from .util import AlgorithmStatusWarning
+from .warning import AlgorithmStatusWarning
 
 
 logger = logging.getLogger(__name__)
