@@ -217,18 +217,18 @@ class Dataset(DataFetcher):
         )
         return filters
 
-    def add_filter(self, filter: Filter) -> None:
+    def add_filter(self, filter_: Filter) -> None:
         """Add a filter to be applied when loading the data.
 
         Utilize :class:`DataFramePreprocessor` class to add filters to the
         dataset to load. The filter will be applied when the data is loaded into
         an :class:`InteractionMatrix` object when :meth:`load` is called.
 
-        :param filter: Filter to be applied to the loaded DataFrame
+        :param filter_: Filter to be applied to the loaded DataFrame
                     processing to interaction matrix.
-        :type filter: Filter
+        :type filter_: Filter
         """
-        self.preprocessor.add_filter(filter)
+        self.preprocessor.add_filter(filter_)
 
     def _load_dataframe_from_cache(self) -> pd.DataFrame:
         if not os.path.exists(self.processed_cache_path):
