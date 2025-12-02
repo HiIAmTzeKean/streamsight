@@ -1,12 +1,37 @@
+import inspect
+import logging
+from types import ModuleType
+
+
+logger = logging.getLogger(__name__)
+
+
 class Registry:
     """A Registry is a wrapper for a dictionary that maps names to Python types.
 
     Most often, this is used to map names to classes.
     """
 
-    def __init__(self, src) -> None:
+    def __init__(self, src: ModuleType) -> None:
         self.registered: dict[str, type] = {}
         self.src = src
+        self._register_all_src()
+
+    def _register_all_src(self) -> None:
+        """Register all classes from the src module."""
+        if not hasattr(self.src, '__all__'):
+            raise AttributeError(f"Source module {self.src} has no __all__ attribute")
+        if self.src.__all__ is None:
+            raise AttributeError(f"Source module {self.src} has __all__ set to None")
+        for class_name in self.src.__all__:
+            try:
+                cls = getattr(self.src, class_name)
+                if not inspect.isclass(cls):
+                    continue
+                self.register(class_name, cls)
+            except AttributeError:
+                # Skip if the attribute doesn't exist
+                continue
 
     def __getitem__(self, key: str) -> type:
         """Retrieve the type for the given key.
@@ -16,11 +41,14 @@ class Registry:
 
         Returns:
             The class type associated with the key.
+
+        Raises:
+            KeyError: If the key is not found in the registry.
         """
-        if key in self.registered:
+        try:
             return self.registered[key]
-        else:
-            return getattr(self.src, key)
+        except KeyError:
+            raise KeyError(f"key `{key}` not found in registry")
 
     def __contains__(self, key: str) -> bool:
         """Check if the given key is known to the registry.
@@ -34,7 +62,7 @@ class Registry:
         try:
             self[key]
             return True
-        except AttributeError:
+        except KeyError:
             return False
 
     def get(self, key: str) -> type:
@@ -47,6 +75,9 @@ class Registry:
 
         Returns:
             The class type associated with the key.
+
+        Raises:
+            KeyError: If the key is not found in the registry.
         """
         return self[key]
 
@@ -62,6 +93,14 @@ class Registry:
         Raises:
             KeyError: If the key is already registered.
         """
-        if key in self:
-            raise KeyError(f"key {key} already registered")
+        if key in self.registered:
+            raise KeyError(f"key `{key}` already registered")
         self.registered[key] = cls
+
+    def get_registered_keys(self) -> list[str]:
+        """Get a list of all registered keys.
+
+        Returns:
+            A list of all registered keys.
+        """
+        return list(self.registered.keys())
