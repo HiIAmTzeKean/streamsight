@@ -1,6 +1,6 @@
 [project]
 name = "streamsight"
-version = "2.0.4"
+version = "2.0.5"
 description = "A toolkit for offline evaluation of Recommender Systems."
 requires-python = ">=3.13"
 readme = "README.md"
@@ -13,12 +13,18 @@ dependencies = [
     "colorlog>=6.10.1",
     "deprecation>=2.1.0",
     "httpx>=0.28.1",
+    "numpy>=1.26.4",
+    "pandas>=2.3.3",
+    "progressbar>=2.5",
+    "pyarrow>=22.0.0",
     "pyfiglet>=1.0.4",
+    "recpack>=0.3.6",
+    "scikit-learn>=1.7.2",
+    "scipy>=1.16.3",
     "simplejson>=3.20.2",
     "tqdm>=4.67.1",
     "typing-extensions>=4.15.0",
     "urllib3>=2.5.0",
-    "progressbar>=2.5",
 ]
 
 [dependency-groups]
@@ -28,16 +34,6 @@ dev = [
     "jupyter>=1.1.1",
     "pytest>=9.0.1",
     {include-group = "docs"},
-]
-data = [
-    "numpy>=1.26.4",
-    "pandas>=2.3.3",
-    "pyarrow>=22.0.0",
-    "scipy>=1.16.3",
-]
-ml = [
-    "recpack>=0.3.6",
-    "scikit-learn>=1.7.2",
 ]
 docs = [
     "mkdocs>=1.6.1",
@@ -53,7 +49,6 @@ docs = [
 
 [tool.uv]
 package = true
-default-groups = ["data", "ml"]
 
 [build-system]
 requires = ["uv_build>=0.9.11,<0.10.0"]

@@ -2241,15 +2241,21 @@ wheels = [
 
 [[package]]
 name = "streamsight"
-version = "2.0.4"
+version = "2.0.5"
 source = { editable = "." }
 dependencies = [
     { name = "colorama" },
     { name = "colorlog" },
     { name = "deprecation" },
     { name = "httpx" },
+    { name = "numpy" },
+    { name = "pandas" },
     { name = "progressbar" },
+    { name = "pyarrow" },
     { name = "pyfiglet" },
+    { name = "recpack" },
+    { name = "scikit-learn" },
+    { name = "scipy" },
     { name = "simplejson" },
     { name = "tqdm" },
     { name = "typing-extensions" },
@@ -2257,12 +2263,6 @@ dependencies = [
 ]
 
 [package.dev-dependencies]
-data = [
-    { name = "numpy" },
-    { name = "pandas" },
-    { name = "pyarrow" },
-    { name = "scipy" },
-]
 dev = [
     { name = "ipykernel" },
     { name = "ipywidgets" },
@@ -2289,10 +2289,6 @@ docs = [
     { name = "mkdocstrings", extra = ["python"] },
     { name = "ruff" },
 ]
-ml = [
-    { name = "recpack" },
-    { name = "scikit-learn" },
-]
 
 [package.metadata]
 requires-dist = [
@@ -2300,8 +2296,14 @@ requires-dist = [
     { name = "colorlog", specifier = ">=6.10.1" },
     { name = "deprecation", specifier = ">=2.1.0" },
     { name = "httpx", specifier = ">=0.28.1" },
+    { name = "numpy", specifier = ">=1.26.4" },
+    { name = "pandas", specifier = ">=2.3.3" },
     { name = "progressbar", specifier = ">=2.5" },
+    { name = "pyarrow", specifier = ">=22.0.0" },
     { name = "pyfiglet", specifier = ">=1.0.4" },
+    { name = "recpack", specifier = ">=0.3.6" },
+    { name = "scikit-learn", specifier = ">=1.7.2" },
+    { name = "scipy", specifier = ">=1.16.3" },
     { name = "simplejson", specifier = ">=3.20.2" },
     { name = "tqdm", specifier = ">=4.67.1" },
     { name = "typing-extensions", specifier = ">=4.15.0" },
@@ -2309,12 +2311,6 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
-data = [
-    { name = "numpy", specifier = ">=1.26.4" },
-    { name = "pandas", specifier = ">=2.3.3" },
-    { name = "pyarrow", specifier = ">=22.0.0" },
-    { name = "scipy", specifier = ">=1.16.3" },
-]
 dev = [
     { name = "ipykernel", specifier = ">=7.1.0" },
     { name = "ipywidgets", specifier = ">=8.1.8" },
@@ -2340,10 +2336,6 @@ docs = [
     { name = "mkdocs-section-index", specifier = ">=0.3.10" },
     { name = "mkdocstrings", extras = ["python"], specifier = ">=1.0.0" },
     { name = "ruff", specifier = ">=0.14.7" },
-]
-ml = [
-    { name = "recpack", specifier = ">=0.3.6" },
-    { name = "scikit-learn", specifier = ">=1.7.2" },
 ]
 
 [[package]]
