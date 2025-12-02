@@ -1,11 +1,11 @@
-## Welcome to Streamsight's documentation
+## Welcome to streamsight's documentation
 
 ![streamsight logo](assets/_static/logo_no_text.png)
 
 Streamsight is an open-source Python toolkit that models temporal context to more
 accurately represent real-world offline evaluation scenarios. We provide an API
 for building and evaluating recommendation systems. Read our report:
-[Streamsight: a toolkit for offline evaluation of recommender systems](https://hdl.handle.net/10356/181114).
+[streamsight: a toolkit for offline evaluation of recommender systems](https://hdl.handle.net/10356/181114).
 
 ![streamsight architecture](assets/_static/architecture.png)
 
