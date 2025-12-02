@@ -2241,7 +2241,7 @@ wheels = [
 
 [[package]]
 name = "streamsight"
-version = "2.0.1"
+version = "2.0.4"
 source = { editable = "." }
 dependencies = [
     { name = "colorama" },
@@ -2261,12 +2261,22 @@ data = [
     { name = "numpy" },
     { name = "pandas" },
     { name = "pyarrow" },
+    { name = "scipy" },
 ]
 dev = [
     { name = "ipykernel" },
     { name = "ipywidgets" },
     { name = "jupyter" },
+    { name = "mkdocs" },
+    { name = "mkdocs-bibtex" },
+    { name = "mkdocs-gen-files" },
+    { name = "mkdocs-literate-nav" },
+    { name = "mkdocs-material" },
+    { name = "mkdocs-minify-plugin" },
+    { name = "mkdocs-section-index" },
+    { name = "mkdocstrings", extra = ["python"] },
     { name = "pytest" },
+    { name = "ruff" },
 ]
 docs = [
     { name = "mkdocs" },
@@ -2303,12 +2313,22 @@ data = [
     { name = "numpy", specifier = ">=1.26.4" },
     { name = "pandas", specifier = ">=2.3.3" },
     { name = "pyarrow", specifier = ">=22.0.0" },
+    { name = "scipy", specifier = ">=1.16.3" },
 ]
 dev = [
     { name = "ipykernel", specifier = ">=7.1.0" },
     { name = "ipywidgets", specifier = ">=8.1.8" },
     { name = "jupyter", specifier = ">=1.1.1" },
+    { name = "mkdocs", specifier = ">=1.6.1" },
+    { name = "mkdocs-bibtex", specifier = ">=4.4.0" },
+    { name = "mkdocs-gen-files", specifier = ">=0.6.0" },
+    { name = "mkdocs-literate-nav", specifier = ">=0.6.2" },
+    { name = "mkdocs-material", specifier = ">=9.7.0" },
+    { name = "mkdocs-minify-plugin", specifier = ">=0.8.0" },
+    { name = "mkdocs-section-index", specifier = ">=0.3.10" },
+    { name = "mkdocstrings", extras = ["python"], specifier = ">=1.0.0" },
     { name = "pytest", specifier = ">=9.0.1" },
+    { name = "ruff", specifier = ">=0.14.7" },
 ]
 docs = [
     { name = "mkdocs", specifier = ">=1.6.1" },

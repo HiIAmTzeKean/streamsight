@@ -1,6 +1,6 @@
 [project]
 name = "streamsight"
-version = "2.0.1"
+version = "2.0.4"
 description = "A toolkit for offline evaluation of Recommender Systems."
 requires-python = ">=3.13"
 readme = "README.md"
@@ -27,11 +27,13 @@ dev = [
     "ipywidgets>=8.1.8",
     "jupyter>=1.1.1",
     "pytest>=9.0.1",
+    {include-group = "docs"},
 ]
 data = [
     "numpy>=1.26.4",
     "pandas>=2.3.3",
     "pyarrow>=22.0.0",
+    "scipy>=1.16.3",
 ]
 ml = [
     "recpack>=0.3.6",
@@ -51,6 +53,7 @@ docs = [
 
 [tool.uv]
 package = true
+default-groups = ["data", "ml"]
 
 [build-system]
 requires = ["uv_build>=0.9.11,<0.10.0"]
