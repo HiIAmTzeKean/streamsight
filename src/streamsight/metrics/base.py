@@ -21,7 +21,6 @@ class Metric():
     """
 
     _scores: None | csr_matrix
-    _value: float
     _user_id_map: np.ndarray
     _y_true: csr_matrix
     _y_pred: csr_matrix
@@ -49,7 +48,7 @@ class Metric():
     @property
     def _is_computed(self) -> bool:
         """Whether the metric has been computed."""
-        return hasattr(self, "_value")
+        return hasattr(self, "_scores")
 
     @property
     def params(self) -> dict[str, int | None]:
@@ -99,9 +98,9 @@ class Metric():
     @property
     def macro_result(self) -> float:
         """The global metric value."""
-        if not hasattr(self, "_value"):
+        if not hasattr(self, "_score"):
             raise ValueError("Metric has not been calculated yet.")
-        return self._value
+        return self._score
 
     @property
     def timestamp_limit(self) -> int:
