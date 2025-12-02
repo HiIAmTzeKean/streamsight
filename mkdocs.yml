@@ -30,8 +30,6 @@ theme:
 plugins:
   - search:
       lang: en
-  - bibtex:
-      bib_file: "docs/reference.bib"
   - gen-files:
       scripts:
         - scripts/gen_ref_pages.py
@@ -47,10 +45,18 @@ plugins:
             show_source: true
             show_bases: true
             show_if_no_docstring: true
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
             inherited_members: true
             members_order: source
             filters:
               - "!^_"
+  - bibtex:
+      bib_file: docs/reference.bib
+  - minify:
+      minify_html: true
+      minify_js: true
+      minify_css: true
 
 markdown_extensions:
   - footnotes

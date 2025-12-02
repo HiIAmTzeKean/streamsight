@@ -1,4 +1,4 @@
-# Adopted from RecPack, An Experimentation Toolkit for Top-N Recommendation
+# RecPack, An Experimentation Toolkit for Top-N Recommendation
 # Copyright (C) 2020  Froomle N.V.
 # License: GNU AGPLv3 - https://gitlab.com/recpack-maintainers/recpack/-/blob/master/LICENSE
 # Author:
@@ -9,22 +9,8 @@ import logging
 from warnings import warn
 
 import numpy as np
-from recpack.algorithms.nearest_neighbour import (
-    compute_conditional_probability,
-    compute_cosine_similarity,
-    compute_pearson_similarity,
-)
-from recpack.algorithms.time_aware_item_knn.decay_functions import (
-    ConcaveDecay,
-    ConvexDecay,
-    ExponentialDecay,
-    InverseDecay,
-    LinearDecay,
-    LogDecay,
-    NoDecay,
-)
-from recpack.util import get_top_K_values
-from scipy.sparse import csr_matrix
+from scipy.sparse import csr_matrix, diags
+from sklearn.metrics.pairwise import cosine_similarity
 
 from streamsight.algorithms.base import TopKItemSimilarityMatrixAlgorithm
 from streamsight.matrix import InteractionMatrix, Matrix
@@ -34,6 +20,432 @@ from streamsight.utils.util import add_rows_to_csr_matrix
 EPSILON = 1e-13
 
 logger = logging.getLogger(__name__)
+
+
+def invert(x: Union[np.ndarray, csr_matrix]) -> Union[np.ndarray, csr_matrix]:
+    """Invert an array.
+
+    :param x: [description]
+    :type x: [type]
+    :return: [description]
+    :rtype: [type]
+    """
+    if isinstance(x, np.ndarray):
+        ret = np.zeros(x.shape)
+    elif isinstance(x, csr_matrix):
+        ret = csr_matrix(x.shape)
+    else:
+        raise TypeError("Unsupported type for argument x.")
+    ret[x.nonzero()] = 1 / x[x.nonzero()]
+    return ret
+
+
+def to_binary(X: csr_matrix) -> csr_matrix:
+    """Converts a matrix to binary by setting all non-zero values to 1.
+
+    :param X: Matrix to convert to binary.
+    :type X: csr_matrix
+    :return: Binary matrix.
+    :rtype: csr_matrix
+    """
+    X_binary = X.astype(bool).astype(X.dtype)
+
+    return X_binary
+
+
+class DecayFunction:
+    def __call__(self, time_distances: ArrayLike) -> ArrayLike:
+        """Apply the decay.
+
+        :param time_distances: array of distances to be decayed.
+        :type time_distances: ArrayLike
+        :returns: Array of event ages to which decays have been applied.
+        :rtype: ArrayLike
+        """
+        raise NotImplementedError()
+
+
+class ExponentialDecay(DecayFunction):
+    """Applies exponential decay.
+
+    For each value x in ``time_distances`` the decayed value is computed as
+
+    .. math::
+
+        f(x) = e^{-\\alpha * x}
+
+    where alpha is the decay parameter.
+
+    :param decay: Exponential decay parameter, should be in the [0, 1] interval.
+    :type decay: float
+    """
+
+    @classmethod
+    def validate_decay(cls, decay: float):
+        """Verify if the decay parameter is in the right range for this decay function."""
+        if not (0 <= decay <= 1):
+            raise ValueError(f"Decay parameter = {decay} is not in the supported range: [0, 1].")
+
+    def __init__(self, decay: float):
+        self.validate_decay(decay)
+        self.decay = decay
+
+    def __call__(self, time_distances: ArrayLike) -> ArrayLike:
+        """Apply the decay function.
+
+        :param time_distances: array of distances to be decayed.
+        :type time_distances: ArrayLike
+        :returns: The decayed time array.
+        :rtype: ArrayLike
+        """
+
+        return np.exp(-self.decay * time_distances)
+
+
+class ConvexDecay(DecayFunction):
+    """Applies a convex decay function.
+
+    For each value x in the ``time_distances`` the decayed value is computed as
+
+    .. math::
+
+        f(x) = \\alpha^{x}
+
+    where :math:`alpha` is the decay parameter.
+
+    :param decay: The decay parameter, should be in the ]0, 1] interval.
+    :type decay: float
+    """
+
+    @classmethod
+    def validate_decay(cls, decay: float):
+        """Verify if the decay parameter is in the right range for this decay function."""
+        if not (0 < decay <= 1):
+            raise ValueError(f"Decay parameter = {decay} is not in the supported range: ]0, 1].")
+
+    def __init__(self, decay: float):
+        self.validate_decay(decay)
+        self.decay = decay
+
+    def __call__(self, time_distances: ArrayLike):
+        """Apply the decay function.
+
+        :param time_distances: array of distances to be decayed.
+        :type time_distances: ArrayLike
+        :returns: The decayed time array.
+        :rtype: ArrayLike
+        """
+
+        return np.power(self.decay, time_distances)
+
+
+class ConcaveDecay(DecayFunction):
+    """Applies a concave decay function.
+
+    For each value x in the ``time_distances`` the decayed value is computed as
+
+    .. math::
+
+        f(x) = 1 - \\alpha^{1-\\frac{x}{N}}
+
+    where :math:`alpha` is the decay parameter and :math:`N` is the ``max_distance`` parameter.
+
+    :param decay: The decay parameter, should be in the [0, 1[ interval.
+    :type decay: float
+    :param max_distance: Normalizing parameter, to put distances in the [0, 1].
+    :type max_distance: float
+    """
+
+    @classmethod
+    def validate_decay(cls, decay: float):
+        """Verify if the decay parameter is in the right range for this decay function."""
+        if not (0 < decay <= 1):
+            raise ValueError(f"Decay parameter = {decay} is not in the supported range: ]0, 1].")
+
+    def __init__(self, decay: float, max_distance: float):
+        self.validate_decay(decay)
+        self.decay = decay
+        self.max_distance = max_distance
+
+    def __call__(self, time_distances: ArrayLike):
+        """Apply the decay function.
+
+        :param time_distances: array of distances to be decayed.
+        :type time_distances: ArrayLike
+        :returns: The decayed array.
+        :rtype: ArrayLike
+        """
+        if (time_distances > self.max_distance).any():
+            raise ValueError(
+                "At least one of the distances is bigger than the specified max_distance."
+            )
+        return 1 - np.power(self.decay, 1 - (time_distances / self.max_distance))
+
+
+class LogDecay(DecayFunction):
+    """Applies a logarithmic decay function.
+
+    For each value x in the ``time_distances`` the decayed value is computed as
+
+    .. math::
+
+        f(x) = log_\\alpha ((\\alpha-1)(1-\\frac{x}{N}) + 1)
+
+    where :math:`alpha` is the decay parameter and :math:`N` is the ``max_distance`` parameter.
+
+    :param decay: The decay parameter, should be in the range ]1, inf[
+    :type decay: float
+    :param max_distance: Normalizing parameter, to put distances in the [0, 1].
+    :type max_distance: float
+    """
+
+    @classmethod
+    def validate_decay(cls, decay: float):
+        """Verify if the decay parameter is in the right range for this decay function."""
+        if not (1 < decay):
+            raise ValueError(f"Decay parameter = {decay} is not in the supported range: ]1, inf[.")
+
+    def __init__(self, decay: float, max_distance: float):
+        self.validate_decay(decay)
+        self.decay = decay
+        self.max_distance = max_distance
+
+    def __call__(self, time_distances: ArrayLike):
+        """Apply the decay function.
+
+        :param time_distances: array of distances to be decayed.
+        :type time_distances: ArrayLike
+        :returns: The decayed time array.
+        :rtype: ArrayLike
+        """
+        if (time_distances > self.max_distance).any():
+            raise ValueError(
+                "At least one of the distances is bigger than the specified max_distance."
+            )
+        return np.log(((self.decay - 1) * (1 - time_distances / self.max_distance)) + 1) / np.log(
+            self.decay
+        )
+
+
+class LinearDecay(DecayFunction):
+    """Applies a linear decay function.
+
+    For each value x in the ``time_distances`` the decayed value is computed as
+
+    .. math::
+
+        f(x) = \\max(1 - (\\frac{x}{N}) \\alpha, 0)
+
+    where :math:`alpha` is the decay parameter and :math:`N` is the ``max_distance`` parameter.
+
+    :param decay: The decay parameter, should be in the [0, inf[ interval.
+    :type decay: float
+    :param max_distance: Normalizing parameter, to put distances in the [0, 1].
+    :type max_distance: float
+    """
+
+    @classmethod
+    def validate_decay(cls, decay: float):
+        if not (0 <= decay):
+            raise ValueError(f"Decay parameter = {decay} is not in the supported range: [0, +inf[.")
+
+    def __init__(self, decay: float, max_distance: float):
+        self.validate_decay(decay)
+        self.decay = decay
+        self.max_distance = max_distance
+
+    def __call__(self, time_distances: ArrayLike):
+        """Apply the decay function.
+
+        :param time_distances: array of distances to be decayed.
+        :type time_distances: ArrayLike
+        :returns: The decayed time array.
+        :rtype: ArrayLike
+        """
+        if (time_distances > self.max_distance).any():
+            raise ValueError(
+                "At least one of the distances is bigger than the specified max_distance."
+            )
+        results = 1 - (time_distances / self.max_distance) * self.decay
+        results[results < 0] = 0
+        return results
+
+
+class InverseDecay(DecayFunction):
+    """Invert the scores.
+
+    Decay parameter only added for interface unity.
+    For each value x in the ``time_distances`` the decayed value is computed as
+
+    .. math::
+
+        f(x) = \\frac{1}{x}
+    """
+
+    def __call__(self, time_distances: ArrayLike):
+        """Apply the decay function.
+
+        :param time_distances: array of distances to be decayed.
+        :type time_distances: ArrayLike
+        :returns: The decayed time array.
+        :rtype: ArrayLike
+        """
+
+        results = time_distances.astype(float).copy()
+        results[results > 0] = 1 / results[results > 0]
+        results[results == 0] = 1
+        return results
+
+
+class NoDecay(ExponentialDecay):
+    """Turns the array into a binary array."""
+
+    def __init__(self):
+        super().__init__(0)
+
+
+def compute_conditional_probability(X: csr_matrix, pop_discount: float = 0) -> csr_matrix:
+    """Compute conditional probability like similarity.
+
+    Computation using equation (3) from the original ItemKNN paper.
+    'Item-based top-n recommendation algorithms.'
+    Deshpande, Mukund, and George Karypis
+
+    .. math ::
+        sim(i,j) = \\frac{\\sum\\limits_{u \\in U} \\mathbb{I}_{u,i} X_{u,j}}{Freq(i) \\times Freq(j)^{\\alpha}}
+
+    Where :math:`\\mathbb{I}_{ui}` is 1 if the user u has visited item i, and 0 otherwise.
+    And alpha is the pop_discount parameter.
+    Note that this is a non-symmetric similarity measure.
+    Given that X is a binary matrix, and alpha is set to 0,
+    this simplifies to pure conditional probability.
+
+    .. math::
+        sim(i,j) = \\frac{Freq(i \\land j)}{Freq(i)}
+
+    :param X: user x item matrix with scores per user, item pair.
+    :type X: csr_matrix
+    :param pop_discount: Parameter defining popularity discount. Defaults to 0
+    :type pop_discount: float, Optional.
+    """
+    # matrix with co_mat_i,j =  SUM(1_u,i * X_u,j for each user u)
+    # If the input matrix is binary, this is the cooccurence count matrix.
+    co_mat = to_binary(X).T @ X
+
+    # Compute the inverse of the item frequencies
+    A = invert(diags(to_binary(X).sum(axis=0).A[0]).tocsr())
+
+    if pop_discount:
+        # This has all item similarities
+        # Co_mat is weighted by both the frequencies of item i
+        # and the frequency of item j to the pop_discount power.
+        # If pop_discount = 1, this similarity is symmetric again.
+        item_cond_prob_similarities = A @ co_mat @ A.power(pop_discount)
+    else:
+        # Weight the co_mat with the amount of occurences of item i.
+        item_cond_prob_similarities = A @ co_mat
+
+    # Set diagonal to 0, because we don't support self similarity
+    item_cond_prob_similarities.setdiag(0)
+
+    return item_cond_prob_similarities
+
+
+def compute_cosine_similarity(X: csr_matrix) -> csr_matrix:
+    """Compute the cosine similarity between the items in the matrix.
+
+    Self similarity is removed.
+
+    :param X: user x item matrix with scores per user, item pair.
+    :type X: csr_matrix
+    :return: similarity matrix
+    :rtype: csr_matrix
+    """
+    # X.T otherwise we are doing a user KNN
+    item_cosine_similarities = cosine_similarity(X.T, dense_output=False)
+    item_cosine_similarities.setdiag(0)
+    # Set diagonal to 0, because we don't want to support self similarity
+
+    return item_cosine_similarities
+
+
+def compute_pearson_similarity(X: csr_matrix) -> csr_matrix:
+    """Compute the pearson correlation as a similarity between each item in the matrix.
+
+    Self similarity is removed.
+    When computing similarity, the avg of nonzero entries per user is used.
+
+    :param X: Rating or psuedo rating matrix.
+    :type X: csr_matrix
+    :return: similarity matrix.
+    :rtype: csr_matrix
+    """
+
+    if (X == 1).sum() == X.nnz:
+        raise ValueError("Pearson similarity can not be computed on a binary matrix.")
+
+    count_per_item = (X > 0).sum(axis=0).A
+
+    avg_per_item = X.sum(axis=0).A.astype(float)
+
+    avg_per_item[count_per_item > 0] = (
+        avg_per_item[count_per_item > 0] / count_per_item[count_per_item > 0]
+    )
+
+    X = X - (X > 0).multiply(avg_per_item)
+
+    # Given the rescaled matrix, the pearson correlation is just cosine similarity on this matrix.
+    return compute_cosine_similarity(X)
+
+
+def get_top_K_ranks(X: csr_matrix, K: Optional[int] = None) -> csr_matrix:
+    """Returns a matrix of ranks assigned to the largest K values in X.
+
+    Selects K largest values for every row in X and assigns a rank to each.
+
+    :param X: Matrix from which we will select K values in every row.
+    :type X: csr_matrix
+    :param K: Amount of values to select.
+    :type K: int, optional
+    :return: Matrix with K values per row.
+    :rtype: csr_matrix
+    """
+    U, I, V = [], [], []
+    for row_ix, (le, ri) in enumerate(zip(X.indptr[:-1], X.indptr[1:])):
+        K_row_pick = min(K, ri - le) if K is not None else ri - le
+
+        if K_row_pick != 0:
+            top_k_row = X.indices[
+                le + np.argpartition(X.data[le:ri], list(range(-K_row_pick, 0)))[-K_row_pick:]
+            ]
+
+            for rank, col_ix in enumerate(reversed(top_k_row)):
+                U.append(row_ix)
+                I.append(col_ix)
+                V.append(rank + 1)
+
+    X_top_K = csr_matrix((V, (U, I)), shape=X.shape)
+
+    return X_top_K
+
+
+def get_top_K_values(X: csr_matrix, K: Optional[int] = None) -> csr_matrix:
+    """Returns a matrix of only the K largest values for every row in X.
+
+    Selects the top-K items for every user (which is equal to the K nearest neighbours.)
+    In case of a tie for the last position, the item with the largest index of the tied items is used.
+
+    :param X: Matrix from which we will select K values in every row.
+    :type X: csr_matrix
+    :param K: Amount of values to select.
+    :type K: int, optional
+    :return: Matrix with K values per row.
+    :rtype: csr_matrix
+    """
+    top_K_ranks = get_top_K_ranks(X, K)
+    top_K_ranks[top_K_ranks > 0] = 1  # ranks to binary
+
+    return top_K_ranks.multiply(X)  # elementwise multiplication
 
 
 class TARSItemKNN(TopKItemSimilarityMatrixAlgorithm):

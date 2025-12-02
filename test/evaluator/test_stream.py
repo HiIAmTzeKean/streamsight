@@ -47,12 +47,12 @@ class TestStreamer:
         evaluator.start_stream()
 
         # first iteration
-        data = evaluator.get_data(algo_id)
+        data = evaluator.get_training_data(algo_id)
         algo.fit(data)
         unlabeled_data = evaluator.get_unlabeled_data(algo_id)
         prediction = algo.predict(unlabeled_data)
         evaluator.submit_prediction(algo_id, prediction)
-        data = evaluator.get_data(external_model_id)
+        data = evaluator.get_training_data(external_model_id)
         external_model.fit(data)
         unlabeled_data = evaluator.get_unlabeled_data(external_model_id)
         prediction = external_model.predict(unlabeled_data)
@@ -60,12 +60,12 @@ class TestStreamer:
 
         # second iteration
         print("Second iteration")
-        data = evaluator.get_data(algo_id)
+        data = evaluator.get_training_data(algo_id)
         algo.fit(data)
         unlabeled_data = evaluator.get_unlabeled_data(algo_id)
         prediction = algo.predict(unlabeled_data)
         evaluator.submit_prediction(algo_id, prediction)
 
-        to_validate_data = evaluator.get_data(external_model_id)
+        to_validate_data = evaluator.get_training_data(external_model_id)
 
         assert to_validate_data == data

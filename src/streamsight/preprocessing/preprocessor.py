@@ -62,7 +62,7 @@ class DataFramePreprocessor:
             columns=[InteractionMatrix.USER_IX, self.user_ix],
         )
 
-    def add_filter(self, filter: Filter) -> None:
+    def add_filter(self, filter_: Filter) -> None:
         """Add a preprocessing filter to be applied.
 
         The filter will be applied before transforming to an InteractionMatrix
@@ -70,9 +70,9 @@ class DataFramePreprocessor:
         can lead to different results.
 
         Args:
-            filter: The filter to be applied.
+            filter_: The filter to be applied.
         """
-        self.filters.append(filter)
+        self.filters.append(filter_)
 
     def _print_log_message(
         self,
@@ -124,9 +124,9 @@ class DataFramePreprocessor:
         """
         self._print_log_message("before", "preprocess", df)
 
-        for filter_obj in self.filters:
-            logger.debug(f"applying filter: {filter_obj}")
-            df = filter_obj.apply(df)
+        for filter_ in self.filters:
+            logger.debug(f"applying filter: {filter_}")
+            df = filter_.apply(df)
             self._print_log_message("after", "filter", df)
 
         self._update_id_mappings(df)

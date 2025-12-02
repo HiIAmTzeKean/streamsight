@@ -97,8 +97,8 @@ class AlgorithmStatusEntry:
 
     name: str
     algo_id: UUID
-    state: AlgorithmStateEnum
-    data_segment: None | int = None
+    state: AlgorithmStateEnum = AlgorithmStateEnum.NEW
+    data_segment: int = 0
     algo_ptr: None | Algorithm = None
 
 
@@ -143,9 +143,12 @@ class AlgorithmStatusRegistry:
         """
         self.registered: dict[UUID, AlgorithmStatusEntry] = {}
         self.status_counts = {i: 0 for i in AlgorithmStateEnum}
+        """Initialize counts of the algorithm for each state."""
 
     def __iter__(self) -> Iterator[UUID]:
         """Return an iterator over registered algorithm UUIDs.
+
+        Allows iteration over the UUIDs of registered entries.
 
         Returns:
             An iterator over the UUIDs of registered entries.
@@ -154,6 +157,8 @@ class AlgorithmStatusRegistry:
 
     def __getitem__(self, key: UUID) -> AlgorithmStatusEntry:
         """Return the status entry for `key`.
+
+        Allows the use of square bracket notation to retrieve entries.
 
         Args:
             key: The UUID of the algorithm to retrieve.
@@ -170,6 +175,8 @@ class AlgorithmStatusRegistry:
 
     def __setitem__(self, key: UUID, entry: AlgorithmStatusEntry) -> None:
         """Register a new algorithm status entry under `key`.
+
+        Allows the use of square bracket notation to register new entries.
 
         Args:
             key: The UUID to register the entry under.
@@ -246,19 +253,19 @@ class AlgorithmStatusRegistry:
         if algo_id not in self.registered:
             raise AttributeError(f"Algorithm with ID:{algo_id} not registered")
 
-        # decrement previous state count
-        self.status_counts[self[algo_id].state] -= 1
-
-        # update state and increment new state count
-        self[algo_id].state = state
-        self.status_counts[state] += 1
-
         if state == AlgorithmStateEnum.READY:
             if data_segment is None:
                 raise ValueError(
                     f"Data segment not provided for {AlgorithmStateEnum.READY} state"
                 )
             self[algo_id].data_segment = data_segment
+
+        # decrement previous state count
+        self.status_counts[self[algo_id].state] -= 1
+
+        # update state and increment new state count
+        self[algo_id].state = state
+        self.status_counts[state] += 1
 
     def is_all_predicted(self) -> bool:
         """Return whether every registered algorithm is in PREDICTED state.
@@ -318,4 +325,6 @@ class AlgorithmStatusRegistry:
         Raises:
             AttributeError: If `algo_id` is not registered.
         """
+        if algo_id not in self.registered:
+            raise AttributeError(f"Algorithm with ID:{algo_id} not registered")
         return f"{self[algo_id].name}_{algo_id}"

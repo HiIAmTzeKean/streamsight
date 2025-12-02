@@ -25,8 +25,8 @@ class RecallK(ListwiseMetricK):
     :type K: int
     """
 
-    def _calculate(self, y_true: csr_matrix, y_pred_top_K: csr_matrix) -> None:
-        scores = scipy.sparse.lil_matrix(y_pred_top_K.shape)
+    def _calculate(self, y_true: csr_matrix, y_pred: csr_matrix) -> None:
+        scores = scipy.sparse.lil_matrix(y_pred.shape)
 
         # log number of users and ground truth interactions
         logger.debug(f"Recall compute started - {self.name}")
@@ -34,7 +34,7 @@ class RecallK(ListwiseMetricK):
         logger.debug(f"Number of ground truth interactions: {y_true.nnz}")
 
         # obtain true positives
-        scores[y_pred_top_K.multiply(y_true).astype(bool)] = 1
+        scores[y_pred.multiply(y_true).astype(bool)] = 1
         scores = scores.tocsr()
 
         # true positive/total actual interactions

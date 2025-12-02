@@ -26,12 +26,11 @@ class TestDataset(Dataset):
     def _load_dataframe(self) -> pd.DataFrame:
         """Load the raw dataset from file, and return it as a pandas DataFrame.
 
-        .. warning::
-
+        Warning:
             This does not apply any preprocessing, and returns the raw dataset.
 
-        :return: The interaction data as a DataFrame with a row per interaction.
-        :rtype: pd.DataFrame
+        Returns:
+            The interaction data as a DataFrame with a row per interaction.
         """
         input_dict = {
             self.USER_IX: [1, 2, 3, 1, 2, 2, 4, 3, 3, 4, 5, 5, 5],

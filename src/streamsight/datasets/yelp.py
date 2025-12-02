@@ -55,8 +55,8 @@ class YelpDataset(Dataset):
         Transform the dataset downloaded to have integer user and item ids. This
         will be needed for representation in the interaction matrix.
 
-        :return: The interaction data as a DataFrame with a row per interaction.
-        :rtype: pd.DataFrame
+        Returns:
+            The interaction data as a DataFrame with a row per interaction.
         """
         self.fetch_dataset()
 

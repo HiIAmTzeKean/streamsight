@@ -1,19 +1,15 @@
 # Streamsight
 
-![streamsight-logo](docs/assets/_static/logo_removebg.png)
+![streamsight-logo](https://github.com/HiIAmTzeKean/streamsight/raw/master/docs/assets/_static/logo_removebg.png)
+
+[![PyPI Latest Release](https://img.shields.io/pypi/v/streamsight.svg)](https://pypi.org/project/streamsight/)&nbsp;&nbsp;
+[![Docs](https://github.com/hiiamtzekean/streamsight/actions/workflows/pages/pages-build-deployment/badge.svg)](https://github.com/hiiamtzekean/streamsight/)&nbsp;&nbsp;
+[![Python version](https://img.shields.io/badge/python-3.12.5-blue)](https://www.python.org/downloads/)
 
 Streamsight is an offline Reccomender Systems (RecSys) evaluation toolkit that respects a global timeline.
 The aim is to partition the data into different windows where data is incrementally released for the programmer
 to fit, train and submit predictions. This aims to provide a close simulation of an online setting when evaluating
 RecSys algorithms.
-
-## Full Flow Structure
-
-![full-flow](docs/assets/_static/full_flow.png)
-
-[![PyPI Latest Release](https://img.shields.io/pypi/v/streamsight.svg)](https://pypi.org/project/streamsight/)&nbsp;&nbsp;
-[![Docs](https://github.com/hiiamtzekean/streamsight/actions/workflows/pages/pages-build-deployment/badge.svg)](https://github.com/hiiamtzekean/streamsight/)&nbsp;&nbsp;
-[![Python version](https://img.shields.io/badge/python-3.12.5-blue)](https://www.python.org/downloads/)
 
 ## Getting Started
 
