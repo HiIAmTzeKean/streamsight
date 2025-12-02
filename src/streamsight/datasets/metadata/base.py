@@ -32,7 +32,7 @@ class Metadata(DataFetcher):
     def load(self) -> pd.DataFrame:
         """Load the metadata from file and return it as a DataFrame.
 
-        :return: Dataframe containing the metadata
-        :rtype: pd.DataFrame
+        Returns:
+            DataFrame containing the metadata.
         """
         return self._load_dataframe()

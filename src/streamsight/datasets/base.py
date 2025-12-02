@@ -61,9 +61,12 @@ class DataFetcher(ABC):
         `httpx.Client` to stream the response and write to disk. If you
         want async behaviour, use :meth:`_fetch_remote_async` instead.
 
-        :param url: url to fetch data from
-        :param filename: Path to save file to
-        :return: The filename where data was saved
+        Args:
+            url: url to fetch data from
+            filename: Path to save file to
+
+        Returns:
+            The filename where data was saved
         """
         logger.debug(f"{self.name} will fetch dataset from remote url at {url}.")
 
@@ -83,9 +86,12 @@ class DataFetcher(ABC):
         running inside an event loop should use this coroutine instead of
         the synchronous `_fetch_remote`.
 
-        :param url: url to fetch data from
-        :param filename: Path to save file to
-        :return: The filename where data was saved
+        Args:
+            url: url to fetch data from
+            filename: Path to save file to
+
+        Returns:
+            The filename where data was saved
         """
         logger.debug(f"{self.name} will asynchronously fetch dataset from {url}.")
 
@@ -116,11 +122,11 @@ class DataFetcher(ABC):
     def _load_dataframe(self) -> pd.DataFrame:
         """Load the raw dataset from file, and return it as a pandas DataFrame.
 
-        .. warning::
+        Warning:
             This does not apply any preprocessing, and returns the raw dataset.
 
-        :return: Interation with minimal columns of {user, item, timestamp}.
-        :rtype: pd.DataFrame
+        Returns:
+            Interaction with minimal columns of {user, item, timestamp}.
         """
         raise NotImplementedError("Needs to be implemented")
 
@@ -194,8 +200,8 @@ class Dataset(DataFetcher):
 
         Concrete classes can override this property to add more filters.
 
-        :return: List of filters to be applied to the dataset
-        :rtype: List[Filter]
+        Returns:
+            List of filters to be applied to the dataset.
         """
         if not self.config.user_ix or not self.config.item_ix:
             raise AttributeError("config.user_ix or config.item_ix not set.")
@@ -247,11 +253,13 @@ class Dataset(DataFetcher):
         even if there is no filter set, as it will ensure that the user and item
         ids are incrementing in the order of time.
 
-        :param apply_filters: To apply the filters set and preprocessing,
-            defaults to True
-        :type apply_filters: bool, optional
-        :return: Resulting interaction matrix
-        :rtype: InteractionMatrix
+        Args:
+            apply_filters: To apply the filters set and preprocessing,
+                defaults to True
+            use_cache: Whether to use cached processed data, defaults to True
+
+        Returns:
+            Resulting interaction matrix.
         """
         logger.info(f"{self.name} is loading dataset...")
         start = time.time()
@@ -287,10 +295,11 @@ class Dataset(DataFetcher):
     def _dataframe_to_matrix(self, df: pd.DataFrame) -> InteractionMatrix:
         """Converts a DataFrame to an InteractionMatrix.
 
-        :param df: DataFrame to convert
-        :type df: pd.DataFrame
-        :return: InteractionMatrix object
-        :rtype: InteractionMatrix
+        Args:
+            df: DataFrame to convert
+
+        Returns:
+            InteractionMatrix object.
         """
         if not self.config.user_ix or not self.config.item_ix or not self.config.timestamp_ix:
             raise AttributeError("config.user_ix, config.item_ix or config.timestamp_ix not set.")
