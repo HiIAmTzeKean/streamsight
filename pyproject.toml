@@ -2,8 +2,11 @@
 name = "streamsight"
 version = "2.0.1"
 description = "A toolkit for offline evaluation of Recommender Systems."
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 readme = "README.md"
+authors = [{name = "Ng Tze Kean", email = "ngtzekean@gmail.com"}]
+maintainers = [{name = "Ng Tze Kean", email = "ngtzekean@gmail.com"}]
+urls = { "Homepage" = "https://hiiamtzekean.github.io/streamsight/", "Repository" = "https://github.com/ngtzekean/streamsight"}
 keywords = ["recsys", "recommendation", "practical evaluation", "global timeline", "reccomender systems", "data leakage"]
 dependencies = [
     "colorama>=0.4.6",
@@ -42,6 +45,7 @@ docs = [
     "mkdocs-gen-files>=0.6.0",
     "mkdocs-literate-nav>=0.6.2",
     "mkdocs-section-index>=0.3.10",
+    "mkdocs-minify-plugin>=0.8.0",
     "ruff>=0.14.7",
 ]
 
