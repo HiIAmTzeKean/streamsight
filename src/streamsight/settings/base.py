@@ -1,10 +1,8 @@
 import logging
 import time
 from abc import ABC, abstractmethod
-from typing import Any, Generator, Optional, Self, Union
+from typing import Any, Self, Union
 from warnings import warn
-
-import numpy as np
 
 from streamsight.matrix import InteractionMatrix
 from .exception import EOWSettingError
