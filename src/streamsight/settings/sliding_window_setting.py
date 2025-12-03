@@ -63,7 +63,7 @@ class SlidingWindowSetting(Setting):
         top_K: int = 10,
         t_upper: int = np.iinfo(np.int32).max,
         t_ground_truth_window: Optional[int] = None,
-        seed: Optional[int] = None,
+        seed: int = 42,
     ) -> None:
         super().__init__(seed=seed)
         self._sliding_window_setting = True
@@ -153,15 +153,3 @@ class SlidingWindowSetting(Setting):
             f"Finished split with window size {self.window_size} seconds. "
             f"Number of splits: {self._num_split_set} in total."
         )
-
-    @property
-    def params(self) -> dict[str, int]:
-        """Parameters of the setting."""
-        return {
-            "background_t": self.t,
-            "window_size": self.window_size,
-            "n_seq_data": self.n_seq_data,
-            "top_K": self.top_K,
-            "t_upper": self.t_upper,
-            "t_ground_truth_window": self.t_ground_truth_window,
-        }

@@ -77,8 +77,21 @@ class Setting(ABC):
 
     @property
     def params(self) -> dict[str, Any]:
-        """Parameters of the setting."""
-        return {}
+        """Return a dictionary of the setting's parameters.
+
+        Returns:
+            Mapping of parameter names to their values.
+        """
+        # Get all instance attributes that don't start with underscore
+        # and are not special attributes
+        exclude_attrs = {"prediction_data_processor"}
+
+        params = {}
+        for attr_name, attr_value in vars(self).items():
+            if not attr_name.startswith("_") and attr_name not in exclude_attrs:
+                params[attr_name] = attr_value
+
+        return params
 
     def get_params(self) -> dict[str, Any]:
         """Get the parameters of the setting."""
@@ -382,7 +395,9 @@ class Setting(ABC):
                 or isinstance(self._ground_truth_data, list)
                 or isinstance(self._t_window, list)
             ):
-                raise ValueError("Expected single InteractionMatrix for non-sliding window setting.")
+                raise ValueError(
+                    "Expected single InteractionMatrix for non-sliding window setting."
+                )
             result = {
                 "unlabeled": self._unlabeled_data,
                 "ground_truth": self._ground_truth_data,
@@ -420,9 +435,7 @@ class Setting(ABC):
                 "ground_truth": self._ground_truth_data[index],
                 "t_window": self._t_window[index],
                 "incremental": (
-                    self._incremental_data[index]
-                    if index < len(self._incremental_data)
-                    else None
+                    self._incremental_data[index] if index < len(self._incremental_data) else None
                 ),
             }
         else:

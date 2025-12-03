@@ -45,7 +45,7 @@ class SingleTimePointSetting(Setting):
         top_K: int = 1,
         t_upper: int = np.iinfo(np.int32).max,
         include_all_past_data: bool = False,
-        seed: None | int = None,
+        seed: int = 42,
     ):
         super().__init__(seed=seed)
         self.t = background_t
@@ -99,17 +99,3 @@ class SingleTimePointSetting(Setting):
             future_interaction,
             self.top_K,
         )
-
-    @property
-    def params(self) -> dict[str, int]:
-        """Return a dictionary of the setting's parameters.
-
-        Returns:
-            Mapping of parameter names to their values.
-        """
-        return {
-            "background_t": self.t,
-            "t_upper": self.t_upper,
-            "n_seq_data": self.n_seq_data,
-            "top_K": self.top_K,
-        }
