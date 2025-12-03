@@ -1,7 +1,8 @@
 import logging
 import time
 from abc import ABC, abstractmethod
-from typing import Optional
+from inspect import Parameter, signature
+from typing import Optional, Self
 from warnings import warn
 
 import numpy as np
@@ -38,6 +39,15 @@ class Algorithm(BaseEstimator, ABC):
         return self.__class__.__name__
 
     @property
+    def params(self) -> dict:
+        """Parameters of the object.
+
+        :return: Parameters of the object
+        :rtype: dict
+        """
+        return self.get_params()
+
+    @property
     def identifier(self) -> str:
         """Identifier of the object.
 
@@ -53,16 +63,50 @@ class Algorithm(BaseEstimator, ABC):
         paramstring = ",".join((f"{k}={v}" for k, v in self.get_params().items()))
         return self.name + "(" + paramstring + ")"
 
+    @classmethod
+    def get_default_params(cls) -> dict:
+        """Get default parameters without instantiation.
+
+        Uses inspect.signature to extract __init__ parameters and their
+        default values without instantiating the class.
+
+        Returns:
+            Dictionary of parameter names to default values.
+            Parameters without defaults map to None.
+        """
+        try:
+            sig = signature(cls.__init__)
+        except (ValueError, TypeError):
+            # Fallback for built-in types or special cases
+            return {}
+
+        params = {}
+        for param_name, param in sig.parameters.items():
+            if param_name == "self":
+                continue
+
+            if param.kind in (Parameter.VAR_POSITIONAL, Parameter.VAR_KEYWORD):
+                # Skip *args, **kwargs
+                continue
+
+            # Extract the default value
+            if param.default is not Parameter.empty:
+                params[param_name] = param.default
+            else:
+                params[param_name] = None
+
+        return params
+
     def __str__(self) -> str:
         return self.name
 
-    def set_params(self, **params) -> None:
+    def set_params(self, **params) -> Self:
         """Set the parameters of the estimator.
 
         :param params: Estimator parameters
         :type params: dict
         """
-        super().set_params(**params)
+        return super().set_params(**params)
 
     @abstractmethod
     def _fit(self, X: csr_matrix):
