@@ -24,6 +24,7 @@ class RecallK(ListwiseMetricK):
     :param K: Size of the recommendation list consisting of the Top-K item predictions.
     :type K: int
     """
+    IS_BASE: bool = False
 
     def _calculate(self, y_true: csr_matrix, y_pred: csr_matrix) -> None:
         scores = scipy.sparse.lil_matrix(y_pred.shape)

@@ -18,6 +18,7 @@ class Random(Algorithm):
     :param seed: Seed for the random number, defaults to None
     :type seed: int, optional
     """
+    IS_BASE: bool = False
 
     def __init__(self, K: Optional[int] = 10, seed: Optional[int] = None):
         super().__init__()

@@ -2,11 +2,13 @@ import inspect
 import logging
 from types import ModuleType
 
+from ..models import BaseModel
+
 
 logger = logging.getLogger(__name__)
 
 
-class Registry:
+class Registry(BaseModel):
     """A Registry is a wrapper for a dictionary that maps names to Python types.
 
     Most often, this is used to map names to classes.
@@ -19,14 +21,14 @@ class Registry:
 
     def _register_all_src(self) -> None:
         """Register all classes from the src module."""
-        if not hasattr(self.src, '__all__'):
+        if not hasattr(self.src, "__all__"):
             raise AttributeError(f"Source module {self.src} has no __all__ attribute")
         if self.src.__all__ is None:
             raise AttributeError(f"Source module {self.src} has __all__ set to None")
         for class_name in self.src.__all__:
             try:
                 cls = getattr(self.src, class_name)
-                if not inspect.isclass(cls):
+                if not inspect.isclass(cls) or cls.IS_BASE:
                     continue
                 self.register(class_name, cls)
             except AttributeError:
@@ -97,10 +99,13 @@ class Registry:
             raise KeyError(f"key `{key}` already registered")
         self.registered[key] = cls
 
-    def get_registered_keys(self) -> list[str]:
+    def get_registered_keys(self, include_base: bool = False) -> list[str]:
         """Get a list of all registered keys.
 
         Returns:
             A list of all registered keys.
         """
-        return list(self.registered.keys())
+        if include_base:
+            return list(self.registered.keys())
+        else:
+            return [key for key, cls in self.registered.items() if getattr(cls, "IS_BASE", False)]

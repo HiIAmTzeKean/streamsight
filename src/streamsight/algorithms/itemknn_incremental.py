@@ -19,13 +19,14 @@ class ItemKNNIncremental(ItemKNN):
     to the model. The incremental updates are done by updating the historical
     data with the new data by appending the new data to the historical data.
     """
+    IS_BASE: bool = False
 
     def __init__(self, K=10, pad_with_popularity=True):
         super().__init__(K=K)
         self.pad_with_popularity = pad_with_popularity
         self.training_data: csr_matrix = None
 
-    def append_training_data(self, X: csr_matrix):
+    def _append_training_data(self, X: csr_matrix):
         """Append a new interaction matrix to the historical data.
 
         :param X: The new interaction matrix
@@ -60,7 +61,7 @@ class ItemKNNIncremental(ItemKNN):
         if self.training_data is None:
             self.training_data = X.copy()
         else:
-            self.append_training_data(X)
+            self._append_training_data(X)
         super()._fit(self.training_data)
         return self
 

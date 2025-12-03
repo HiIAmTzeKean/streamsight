@@ -34,6 +34,7 @@ class DCGK(ListwiseMetricK):
 
     This code is adapted from RecPack :cite:`recpack`
     """
+    IS_BASE: bool = False
 
     def _calculate(self, y_true: csr_matrix, y_pred: csr_matrix) -> None:
         # log number of users and ground truth interactions

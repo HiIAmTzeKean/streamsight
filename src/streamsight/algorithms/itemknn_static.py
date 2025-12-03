@@ -3,9 +3,11 @@ from typing import Optional
 
 import pandas as pd
 from scipy.sparse import csr_matrix
+
 from streamsight.algorithms.base import Algorithm
 from streamsight.algorithms.itemknn import ItemKNN
 from streamsight.matrix import InteractionMatrix
+
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +20,9 @@ class ItemKNNStatic(ItemKNN):
     is to make the training data static and not update the model with new data.
     """
 
-    def __init__(self, K=10):
+    IS_BASE: bool = False
+
+    def __init__(self, K: int = 10) -> None:
         super().__init__(K)
         self.fit_complete = False
 
@@ -29,9 +33,7 @@ class ItemKNNStatic(ItemKNN):
         super().fit(X)
         return self
 
-    def _predict(
-        self, X: csr_matrix, predict_frame: Optional[pd.DataFrame] = None
-    ) -> csr_matrix:
+    def _predict(self, X: csr_matrix, predict_frame: Optional[pd.DataFrame] = None) -> csr_matrix:
         num_item, _ = self.similarity_matrix_.shape
         # reduce X to only the items that are in the similarity matrix
         X = X[:, :num_item]

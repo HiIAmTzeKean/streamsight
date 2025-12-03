@@ -22,11 +22,15 @@ class MovieLensDataset(Dataset):
 
     This code is adapted from RecPack :cite:`recpack`
     """
+
+    IS_BASE: bool = True
     config: ClassVar[MovieLensDatasetConfig] = MovieLensDatasetConfig()
 
     def _download_dataset(self) -> None:
         # Download the zip into the data directory
-        zip_file_path = os.path.join(self.config.default_base_path, f"{self.config.remote_zipname}.zip")
+        zip_file_path = os.path.join(
+            self.config.default_base_path, f"{self.config.remote_zipname}.zip"
+        )
         self._fetch_remote(
             url=f"{self.config.dataset_url}/{self.config.remote_zipname}.zip",
             filename=zip_file_path,
@@ -34,19 +38,27 @@ class MovieLensDataset(Dataset):
 
         # Extract the ratings file which we will use
         with zipfile.ZipFile(zip_file_path, "r") as zip_ref:
-            zip_ref.extract(f"{self.config.remote_zipname}/{self.config.remote_filename}", self.config.default_base_path)
+            zip_ref.extract(
+                f"{self.config.remote_zipname}/{self.config.remote_filename}",
+                self.config.default_base_path,
+            )
 
         # Rename the ratings file to the specified filename
         os.rename(
-            os.path.join(self.config.default_base_path, f"{self.config.remote_zipname}/{self.config.remote_filename}"),
+            os.path.join(
+                self.config.default_base_path,
+                f"{self.config.remote_zipname}/{self.config.remote_filename}",
+            ),
             self.file_path,
         )
 
 
 class MovieLens100K(MovieLensDataset):
     """MovieLens 100K dataset."""
+
     ITEM_METADATA = None
     USER_METADATA = None
+    IS_BASE: bool = False
 
     config: ClassVar[MovieLens100KDatasetConfig] = MovieLens100KDatasetConfig()
 

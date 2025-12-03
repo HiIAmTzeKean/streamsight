@@ -6,14 +6,16 @@ from scipy.sparse import csr_matrix, lil_matrix
 from streamsight.algorithms import Algorithm
 from streamsight.matrix.interaction_matrix import InteractionMatrix
 
+
 class RecentPopularity(Algorithm):
     """A popularity-based algorithm which only considers popularity of the latest train data.
 
     :param K: Number of items to recommend, defaults to 200
     :type K: int, optional
     """
+    IS_BASE: bool = False
 
-    def __init__(self, K: int = 200):
+    def __init__(self, K: int = 200) -> None:
         super().__init__()
         self.K = K
 

@@ -1,5 +1,7 @@
 import logging
+
 from streamsight.algorithms.itemknn import ItemKNN
+
 
 logger = logging.getLogger(__name__)
 
@@ -12,5 +14,7 @@ class ItemKNNRolling(ItemKNN):
     all interactions that are older than the window size.
     """
 
-    def __init__(self, K=10):
+    IS_BASE: bool = False
+
+    def __init__(self, K: int = 10) -> None:
         super().__init__(K)

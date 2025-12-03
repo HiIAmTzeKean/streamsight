@@ -21,6 +21,7 @@ class ItemKNNIncrementalMovieLens100K(ItemKNN):
     to the model. The incremental updates are done by updating the historical
     data with the new data by appending the new data to the historical data.
     """
+    IS_BASE: bool = False
 
     def __init__(self, K=10, metadata: pd.DataFrame = None):
         super().__init__(K)
@@ -29,7 +30,7 @@ class ItemKNNIncrementalMovieLens100K(ItemKNN):
         self.metadata = metadata.copy()
         self.training_data: csr_matrix = None
 
-    def append_training_data(self, X: csr_matrix):
+    def _append_training_data(self, X: csr_matrix):
         """Append a new interaction matrix to the historical data.
 
         :param X: The new interaction matrix
@@ -64,7 +65,7 @@ class ItemKNNIncrementalMovieLens100K(ItemKNN):
         if self.training_data is None:
             self.training_data = X.copy()
         else:
-            self.append_training_data(X)
+            self._append_training_data(X)
         super()._fit(self.training_data)
         return self
 

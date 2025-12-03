@@ -83,6 +83,7 @@ from streamsight.utils.util import (
     add_rows_to_csr_matrix,
     arg_to_str,
     df_to_sparse,
+    invert,
     to_binary,
     to_tuple,
 )
@@ -108,4 +109,5 @@ __all__ = [
     "get_data_dir",
     "get_logs_dir",
     "get_repo_root",
+    "invert",
 ]
