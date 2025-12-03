@@ -6,9 +6,11 @@
 #   Robin Verachtert
 
 import logging
+from typing import Optional, Union
 from warnings import warn
 
 import numpy as np
+from numpy.typing import ArrayLike
 from scipy.sparse import csr_matrix, diags
 from sklearn.metrics.pairwise import cosine_similarity
 
