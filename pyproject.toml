@@ -1,6 +1,6 @@
 [project]
 name = "streamsight"
-version = "2.0.5"
+version = "2.0.11"
 description = "A toolkit for offline evaluation of Recommender Systems."
 requires-python = ">=3.13"
 readme = "README.md"
@@ -13,12 +13,11 @@ dependencies = [
     "colorlog>=6.10.1",
     "deprecation>=2.1.0",
     "httpx>=0.28.1",
-    "numpy>=1.26.4",
+    "numpy==2.2.6",
     "pandas>=2.3.3",
     "progressbar>=2.5",
     "pyarrow>=22.0.0",
     "pyfiglet>=1.0.4",
-    "recpack>=0.3.6",
     "scikit-learn>=1.7.2",
     "scipy>=1.16.3",
     "simplejson>=3.20.2",
@@ -49,6 +48,10 @@ docs = [
 
 [tool.uv]
 package = true
+required-environments = [
+    "sys_platform == 'linux' and platform_machine == 'aarch64'",
+    "sys_platform == 'darwin' and platform_machine == 'aarch64'",
+]
 
 [build-system]
 requires = ["uv_build>=0.9.11,<0.10.0"]
