@@ -5,13 +5,14 @@ from warnings import warn
 import numpy as np
 from scipy.sparse import csr_matrix
 
-from streamsight.algorithms.utils import get_top_K_ranks
+from ..algorithms.utils import get_top_K_ranks
+from ..models import BaseModelWithParam
 
 
 logger = logging.getLogger(__name__)
 
 
-class Metric():
+class Metric(BaseModelWithParam):
     """Base class for all metrics.
 
     A Metric object is stateful, i.e. after `calculate`
@@ -41,25 +42,15 @@ class Metric():
         self._is_time_aware: bool = timestamp_limit is not None
 
     @property
-    def name(self) -> str:
-        """Name of the metric."""
-        return self.__class__.__name__
-
-    @property
     def _is_computed(self) -> bool:
         """Whether the metric has been computed."""
         return hasattr(self, "_scores")
 
-    @property
-    def params(self) -> dict[str, int | None]:
-        """Parameters of the metric."""
+    def get_params(self) -> dict[str, int | None]:
+        """Get the parameters of the metric."""
         if not self._is_time_aware:
             return {}
         return {"timestamp_limit": self._timestamp_limit}
-
-    def get_params(self) -> dict[str, int | None]:
-        """Get the parameters of the metric."""
-        return self.params
 
     @property
     def identifier(self) -> str:
@@ -82,7 +73,9 @@ class Metric():
         """
         y_true, y_pred = self._eliminate_empty_users(y_true=y_true, y_pred=y_pred)
         if not self.is_y_true_pred_shape_match(y_true=y_true, y_pred=y_pred):
-            raise AssertionError(f"Shape mismatch between y_true: {y_true.shape} and y_pred: {y_pred.shape}")
+            raise AssertionError(
+                f"Shape mismatch between y_true: {y_true.shape} and y_pred: {y_pred.shape}"
+            )
         self._set_shape(y_true)
         self._calculate(y_true, y_pred)
 
@@ -129,8 +122,7 @@ class Metric():
         return row.flatten(), col.flatten()
 
     def is_y_true_pred_shape_match(self, y_true: csr_matrix, y_pred: csr_matrix) -> bool:
-        """Make sure the dimensions of y_true and y_pred match.
-        """
+        """Make sure the dimensions of y_true and y_pred match."""
         return y_true.shape == y_pred.shape
 
     def _set_shape(self, y_true: csr_matrix) -> None:
@@ -247,7 +239,9 @@ class MetricTopK(Metric):
         # Perform checks and cleaning
         y_true, y_pred = self._eliminate_empty_users(y_true=y_true, y_pred=y_pred)
         if not self.is_y_true_pred_shape_match(y_true, y_pred):
-            raise AssertionError(f"Shape mismatch between y_true: {y_true.shape} and y_pred: {y_pred.shape}")
+            raise AssertionError(
+                f"Shape mismatch between y_true: {y_true.shape} and y_pred: {y_pred.shape}"
+            )
         self._set_shape(y_true=y_true)
 
         # Compute the topK for the predicted affinities

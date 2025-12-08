@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 class DataFetcher(ABC):
     """Represents a abstract class to be used by Dataset or Metadata subclass.
     """
-
+    IS_BASE: bool = True
     config: ClassVar[DatasetConfig] = DatasetConfig()
     """Configuration for the dataset."""
 

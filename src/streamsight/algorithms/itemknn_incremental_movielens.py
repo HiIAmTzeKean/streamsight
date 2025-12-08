@@ -21,6 +21,7 @@ class ItemKNNIncrementalMovieLens100K(ItemKNN):
     to the model. The incremental updates are done by updating the historical
     data with the new data by appending the new data to the historical data.
     """
+    IS_BASE: bool = False
 
     def __init__(self, K=10, metadata: pd.DataFrame = None):
         super().__init__(K)

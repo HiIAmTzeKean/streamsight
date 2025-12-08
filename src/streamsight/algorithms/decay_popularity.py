@@ -13,8 +13,9 @@ class DecayPopularity(Algorithm):
     :param K: Number of items to recommend, defaults to 200
     :type K: int, optional
     """
+    IS_BASE: bool = False
 
-    def __init__(self, K: int = 200):
+    def __init__(self, K: int = 200) -> None:
         super().__init__()
         self.K = K
         self.historical_data: list[csr_matrix] = []  # Store all historical training data

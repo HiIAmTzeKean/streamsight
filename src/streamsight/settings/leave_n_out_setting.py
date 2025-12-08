@@ -11,6 +11,8 @@ logger = logging.getLogger(__name__)
 
 
 class LeaveNOutSetting(Setting):
+    IS_BASE: bool = False
+
     def __init__(
         self,
         n_seq_data: int = 1,

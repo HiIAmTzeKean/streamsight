@@ -1,10 +1,11 @@
 import logging
 import time
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from typing import Any, Self, Union
 from warnings import warn
 
 from streamsight.matrix import InteractionMatrix
+from ..models import BaseModelWithParam
 from .exception import EOWSettingError
 from .processor import PredictionDataProcessor
 
@@ -12,7 +13,7 @@ from .processor import PredictionDataProcessor
 logger = logging.getLogger(__name__)
 
 
-class Setting(ABC):
+class Setting(BaseModelWithParam):
     """Base class for defining an evaluation setting.
 
     Core Attributes:
@@ -62,26 +63,12 @@ class Setting(ABC):
         self.top_K: int
         """Number of interaction per user that should be selected for evaluation purposes in :attr:`ground_truth_data`."""
 
-    @property
-    def name(self) -> str:
-        """Get the name of the setting.
-
-        Returns:
-            Name of the setting class.
-        """
-        return self.__class__.__name__
-
-    def __str__(self):
+    def __str__(self) -> str:
         attrs = self.params
         return f"{self.__class__.__name__}({', '.join((f'{k}={v}' for k, v in attrs.items()))})"
 
-    @property
-    def params(self) -> dict[str, Any]:
-        """Return a dictionary of the setting's parameters.
-
-        Returns:
-            Mapping of parameter names to their values.
-        """
+    def get_params(self) -> dict[str, Any]:
+        """Get the parameters of the setting."""
         # Get all instance attributes that don't start with underscore
         # and are not special attributes
         exclude_attrs = {"prediction_data_processor"}
@@ -92,10 +79,6 @@ class Setting(ABC):
                 params[attr_name] = attr_value
 
         return params
-
-    def get_params(self) -> dict[str, Any]:
-        """Get the parameters of the setting."""
-        return self.params
 
     @property
     def identifier(self) -> str:

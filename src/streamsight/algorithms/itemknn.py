@@ -1,4 +1,3 @@
-
 import logging
 from typing import Optional
 
@@ -11,6 +10,7 @@ from streamsight.algorithms.base import TopKItemSimilarityMatrixAlgorithm
 from streamsight.algorithms.utils import get_top_K_values
 from streamsight.matrix import ItemUserBasedEnum
 from streamsight.utils.util import add_rows_to_csr_matrix
+
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ class ItemKNN(TopKItemSimilarityMatrixAlgorithm):
     """Item K Nearest Neighbours model.
 
     First described in 'Item-based top-n recommendation algorithms.' :cite:`10.1145/963770.963776`
-    
+
     This code is adapted from RecPack :cite:`recpack`
 
     For each item the K most similar items are computed during fit.
@@ -53,12 +53,11 @@ class ItemKNN(TopKItemSimilarityMatrixAlgorithm):
         Defaults to 200
     :type K: int, optional
     """
+
+    IS_BASE: bool = True
     ITEM_USER_BASED = ItemUserBasedEnum.ITEM
-    
-    def __init__(
-        self,
-        K=10
-    ):
+
+    def __init__(self, K: int = 10) -> None:
         super().__init__(K=K)
 
     def _fit(self, X: csr_matrix) -> None:
@@ -70,7 +69,7 @@ class ItemKNN(TopKItemSimilarityMatrixAlgorithm):
 
         self.similarity_matrix_ = item_similarities
 
-    def _predict(self, X: csr_matrix, predict_frame:Optional[pd.DataFrame]=None) -> csr_matrix:
+    def _predict(self, X: csr_matrix, predict_frame: Optional[pd.DataFrame] = None) -> csr_matrix:
         """Predict scores for nonzero users in X
 
         Scores are computed by matrix multiplication of X
@@ -90,7 +89,9 @@ class ItemKNN(TopKItemSimilarityMatrixAlgorithm):
 
         return scores
 
-    def _pad_predict(self, X_pred: csr_matrix, intended_shape: tuple, to_predict_frame: pd.DataFrame) -> csr_matrix:
+    def _pad_predict(
+        self, X_pred: csr_matrix, intended_shape: tuple, to_predict_frame: pd.DataFrame
+    ) -> csr_matrix:
         """Pad the predictions with random items for users that are not in the training data.
 
         :param X_pred: Predictions made by the algorithm
@@ -106,9 +107,11 @@ class ItemKNN(TopKItemSimilarityMatrixAlgorithm):
             return X_pred
 
         known_user_id, known_item_id = X_pred.shape
-        X_pred = add_rows_to_csr_matrix(X_pred, intended_shape[0]-known_user_id)
+        X_pred = add_rows_to_csr_matrix(X_pred, intended_shape[0] - known_user_id)
         # pad users with random items
-        logger.debug(f"Padding user ID in range({known_user_id}, {intended_shape[0]}) with random items")
+        logger.debug(
+            f"Padding user ID in range({known_user_id}, {intended_shape[0]}) with random items"
+        )
         to_predict = to_predict_frame.value_counts("uid")
         row = []
         col = []

@@ -13,12 +13,13 @@ from sklearn.utils.validation import check_is_fitted
 
 from streamsight.matrix import InteractionMatrix, ItemUserBasedEnum, Matrix, to_csr_matrix
 from streamsight.utils.util import add_rows_to_csr_matrix
+from ..models import BaseModelWithParam
 
 
 logger = logging.getLogger(__name__)
 
 
-class Algorithm(BaseEstimator, ABC):
+class Algorithm(BaseEstimator, BaseModelWithParam):
     """Base class for all streamsight algorithm implementations."""
 
     ITEM_USER_BASED: ItemUserBasedEnum
@@ -28,24 +29,6 @@ class Algorithm(BaseEstimator, ABC):
         if not hasattr(self, "seed"):
             self.seed = 42
         self.rand_gen = np.random.default_rng(seed=self.seed)
-
-    @property
-    def name(self) -> str:
-        """Name of the object's class.
-
-        :return: Name of the object's class
-        :rtype: str
-        """
-        return self.__class__.__name__
-
-    @property
-    def params(self) -> dict:
-        """Parameters of the object.
-
-        :return: Parameters of the object
-        :rtype: dict
-        """
-        return self.get_params()
 
     @property
     def identifier(self) -> str:

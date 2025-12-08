@@ -37,6 +37,7 @@ class SingleTimePointSetting(Setting):
         seed: Random seed for reproducible behavior.
             If None, a seed will be generated.
     """
+    IS_BASE: bool = False
 
     def __init__(
         self,

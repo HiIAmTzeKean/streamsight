@@ -43,6 +43,7 @@ class NDCGK(ListwiseMetricK):
 
     This code is adapted from RecPack :cite:`recpack`
     """
+    IS_BASE: bool = False
 
     def __init__(self, K:Optional[int] = 10, timestamp_limit: Optional[int] = None):
         super().__init__(K=K, timestamp_limit=timestamp_limit)

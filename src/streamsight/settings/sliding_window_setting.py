@@ -55,6 +55,8 @@ class SlidingWindowSetting(Setting):
     :type seed: int, optional
     """
 
+    IS_BASE: bool = False
+
     def __init__(
         self,
         background_t: int,

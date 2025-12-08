@@ -38,6 +38,7 @@ class YelpDataset(Dataset):
 
     """
 
+    IS_BASE: bool = False
     config: ClassVar[YelpDatasetConfig] = YelpDatasetConfig()
 
     def _download_dataset(self) -> NoReturn:
