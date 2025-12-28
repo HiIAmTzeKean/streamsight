@@ -21,7 +21,7 @@ class BaseModel(ABC):
 
 
 class ParamMixin(ABC):
-    """Base class for all streamsight components with parameters.
+    """Mixin class for all streamsight components with parameters.
 
     Provides common properties like name, params, and identifier.
     """
