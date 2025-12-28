@@ -1,8 +1,8 @@
 import logging
 import time
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from inspect import Parameter, signature
-from typing import Optional, Self
+from typing import Self
 from warnings import warn
 
 import numpy as np
@@ -13,13 +13,13 @@ from sklearn.utils.validation import check_is_fitted
 
 from streamsight.matrix import InteractionMatrix, ItemUserBasedEnum, Matrix, to_csr_matrix
 from streamsight.utils.util import add_rows_to_csr_matrix
-from ..models import BaseModelWithParam
+from ..models import BaseModel, ParamMixin
 
 
 logger = logging.getLogger(__name__)
 
 
-class Algorithm(BaseEstimator, BaseModelWithParam):
+class Algorithm(BaseEstimator, BaseModel, ParamMixin):
     """Base class for all streamsight algorithm implementations."""
 
     ITEM_USER_BASED: ItemUserBasedEnum
@@ -105,7 +105,7 @@ class Algorithm(BaseEstimator, BaseModelWithParam):
         raise NotImplementedError("Please implement _fit")
 
     @abstractmethod
-    def _predict(self, X: csr_matrix, predict_frame: Optional[pd.DataFrame] = None) -> csr_matrix:
+    def _predict(self, X: csr_matrix, predict_frame: None | pd.DataFrame = None) -> csr_matrix:
         """Stub for predicting scores to users
 
         Will be called by the `predict` wrapper.

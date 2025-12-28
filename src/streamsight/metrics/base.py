@@ -6,13 +6,13 @@ import numpy as np
 from scipy.sparse import csr_matrix
 
 from ..algorithms.utils import get_top_K_ranks
-from ..models import BaseModelWithParam
+from ..models import BaseModel, ParamMixin
 
 
 logger = logging.getLogger(__name__)
 
 
-class Metric(BaseModelWithParam):
+class Metric(BaseModel, ParamMixin):
     """Base class for all metrics.
 
     A Metric object is stateful, i.e. after `calculate`

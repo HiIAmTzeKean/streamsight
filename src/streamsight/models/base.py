@@ -20,7 +20,7 @@ class BaseModel(ABC):
         return self.__class__.__name__
 
 
-class BaseModelWithParam(BaseModel):
+class ParamMixin(ABC):
     """Base class for all streamsight components with parameters.
 
     Provides common properties like name, params, and identifier.

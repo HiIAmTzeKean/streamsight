@@ -1,1 +1,1 @@
-from .base import BaseModel, BaseModelWithParam
+from .base import BaseModel, ParamMixin

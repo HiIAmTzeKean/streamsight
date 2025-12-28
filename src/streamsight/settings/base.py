@@ -5,7 +5,7 @@ from typing import Any, Self, Union
 from warnings import warn
 
 from streamsight.matrix import InteractionMatrix
-from ..models import BaseModelWithParam
+from ..models import BaseModel, ParamMixin
 from .exception import EOWSettingError
 from .processor import PredictionDataProcessor
 
@@ -13,7 +13,7 @@ from .processor import PredictionDataProcessor
 logger = logging.getLogger(__name__)
 
 
-class Setting(BaseModelWithParam):
+class Setting(BaseModel, ParamMixin):
     """Base class for defining an evaluation setting.
 
     Core Attributes:
