@@ -27,6 +27,7 @@ class LastFMDataset(Dataset):
 
     The dataset is downloaded from the GroupLens website :cite:`Cantador_RecSys2011`.
     """
+    IS_BASE: bool = False
 
     config: ClassVar[LastFMDatasetConfig] = LastFMDatasetConfig()
 

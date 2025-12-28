@@ -28,7 +28,9 @@ class AmazonDataset(Dataset):
 
     Other Amazon datasets should inherit from this class.
     """
+
     ITEM_METADATA = None
+    IS_BASE: bool = True
 
     config: ClassVar[AmazonDatasetConfig] = AmazonDatasetConfig()
 
@@ -98,6 +100,8 @@ class AmazonDataset(Dataset):
 class AmazonMusicDataset(AmazonDataset):
     """Handles Amazon Music dataset."""
 
+    IS_BASE: bool = False
+
     config: ClassVar[AmazonMusicDatasetConfig] = AmazonMusicDatasetConfig()
 
     def _fetch_dataset_metadata(
@@ -109,6 +113,8 @@ class AmazonMusicDataset(AmazonDataset):
 class AmazonMovieDataset(AmazonDataset):
     """Handles Amazon Movie dataset."""
 
+    IS_BASE: bool = False
+
     config: ClassVar[AmazonMovieDatasetConfig] = AmazonMovieDatasetConfig()
 
     def _fetch_dataset_metadata(
@@ -119,6 +125,8 @@ class AmazonMovieDataset(AmazonDataset):
 
 class AmazonSubscriptionBoxesDataset(AmazonDataset):
     """Handles Amazon Computer dataset."""
+
+    IS_BASE: bool = False
 
     config: ClassVar[AmazonSubscriptionBoxesDatasetConfig] = AmazonSubscriptionBoxesDatasetConfig()
 
@@ -132,6 +140,8 @@ class AmazonSubscriptionBoxesDataset(AmazonDataset):
 
 class AmazonBookDataset(AmazonDataset):
     """Handles Amazon Book dataset."""
+
+    IS_BASE: bool = False
 
     config: ClassVar[AmazonBookDatasetConfig] = AmazonBookDatasetConfig()
 

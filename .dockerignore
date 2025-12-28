@@ -1,0 +1,8 @@
+**/.git
+**/.github
+**/.venv
+**/docs
+**/scripts
+**/test
+!README.md
+**/uv.lock

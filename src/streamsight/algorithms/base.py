@@ -1,7 +1,8 @@
 import logging
 import time
-from abc import ABC, abstractmethod
-from typing import Optional
+from abc import abstractmethod
+from inspect import Parameter, signature
+from typing import Self
 from warnings import warn
 
 import numpy as np
@@ -12,12 +13,13 @@ from sklearn.utils.validation import check_is_fitted
 
 from streamsight.matrix import InteractionMatrix, ItemUserBasedEnum, Matrix, to_csr_matrix
 from streamsight.utils.util import add_rows_to_csr_matrix
+from ..models import BaseModel, ParamMixin
 
 
 logger = logging.getLogger(__name__)
 
 
-class Algorithm(BaseEstimator, ABC):
+class Algorithm(BaseEstimator, BaseModel, ParamMixin):
     """Base class for all streamsight algorithm implementations."""
 
     ITEM_USER_BASED: ItemUserBasedEnum
@@ -27,15 +29,6 @@ class Algorithm(BaseEstimator, ABC):
         if not hasattr(self, "seed"):
             self.seed = 42
         self.rand_gen = np.random.default_rng(seed=self.seed)
-
-    @property
-    def name(self) -> str:
-        """Name of the object's class.
-
-        :return: Name of the object's class
-        :rtype: str
-        """
-        return self.__class__.__name__
 
     @property
     def identifier(self) -> str:
@@ -53,16 +46,50 @@ class Algorithm(BaseEstimator, ABC):
         paramstring = ",".join((f"{k}={v}" for k, v in self.get_params().items()))
         return self.name + "(" + paramstring + ")"
 
+    @classmethod
+    def get_default_params(cls) -> dict:
+        """Get default parameters without instantiation.
+
+        Uses inspect.signature to extract __init__ parameters and their
+        default values without instantiating the class.
+
+        Returns:
+            Dictionary of parameter names to default values.
+            Parameters without defaults map to None.
+        """
+        try:
+            sig = signature(cls.__init__)
+        except (ValueError, TypeError):
+            # Fallback for built-in types or special cases
+            return {}
+
+        params = {}
+        for param_name, param in sig.parameters.items():
+            if param_name == "self":
+                continue
+
+            if param.kind in (Parameter.VAR_POSITIONAL, Parameter.VAR_KEYWORD):
+                # Skip *args, **kwargs
+                continue
+
+            # Extract the default value
+            if param.default is not Parameter.empty:
+                params[param_name] = param.default
+            else:
+                params[param_name] = None
+
+        return params
+
     def __str__(self) -> str:
         return self.name
 
-    def set_params(self, **params) -> None:
+    def set_params(self, **params) -> Self:
         """Set the parameters of the estimator.
 
         :param params: Estimator parameters
         :type params: dict
         """
-        super().set_params(**params)
+        return super().set_params(**params)
 
     @abstractmethod
     def _fit(self, X: csr_matrix):
@@ -78,7 +105,7 @@ class Algorithm(BaseEstimator, ABC):
         raise NotImplementedError("Please implement _fit")
 
     @abstractmethod
-    def _predict(self, X: csr_matrix, predict_frame: Optional[pd.DataFrame] = None) -> csr_matrix:
+    def _predict(self, X: csr_matrix, predict_frame: None | pd.DataFrame = None) -> csr_matrix:
         """Stub for predicting scores to users
 
         Will be called by the `predict` wrapper.

@@ -11,11 +11,13 @@ logger = logging.getLogger(__name__)
 
 
 class LeaveNOutSetting(Setting):
+    IS_BASE: bool = False
+
     def __init__(
         self,
         n_seq_data: int = 1,
         N: int = 1,
-        seed: int | None = None,
+        seed: int = 42,
     ) -> None:
         super().__init__(seed=seed)
         self.n_seq_data = n_seq_data
@@ -44,11 +46,3 @@ class LeaveNOutSetting(Setting):
             self.top_K,
         )
         self._t_window = None
-
-    @property
-    def params(self) -> dict[str, int]:
-        """Parameters of the setting."""
-        return {
-            "n_seq_data": self.n_seq_data,
-            "N": self.top_K,
-        }
