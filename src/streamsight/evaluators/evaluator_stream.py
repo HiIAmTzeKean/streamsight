@@ -317,11 +317,11 @@ class EvaluatorStreamer(EvaluatorBase):
         status = self.status_registry[algo_id].state
         if status in [AlgorithmStateEnum.READY, AlgorithmStateEnum.PREDICTED]:
             return self._unlabeled_data_cache
-
-        if status == AlgorithmStateEnum.COMPLETED:
-            warn(AlgorithmStatusWarning(algo_id, status, "complete"))
+        elif status == AlgorithmStateEnum.COMPLETED:
+            logger.warning(AlgorithmStatusWarning(algo_id, status, "complete"))
             return
-        warn(AlgorithmStatusWarning(algo_id, status, "unlabeled"))
+        else:
+            logger.warning(AlgorithmStatusWarning(algo_id, status, "unlabeled"))
 
     def submit_prediction(
         self, algo_id: UUID, X_pred: Union[csr_matrix, InteractionMatrix]
@@ -382,7 +382,7 @@ class EvaluatorStreamer(EvaluatorBase):
 
         if self._run_step == self.setting.num_split:
             self.status_registry.update(algo_id, AlgorithmStateEnum.COMPLETED)
-            logger.info(f"Finished streaming")
+            logger.info("Finished streaming")
             warn(AlgorithmStatusWarning(algo_id, status, "complete"))
 
     def _transform_prediction(self, X_pred: Union[csr_matrix, InteractionMatrix]) -> csr_matrix:
