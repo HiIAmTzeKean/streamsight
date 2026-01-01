@@ -1,6 +1,6 @@
 import pytest
 
-from streamsight.datasets.base import Dataset
+from streamsight.datasets import Dataset
 from streamsight.settings.sliding_window_setting import SlidingWindowSetting
 
 

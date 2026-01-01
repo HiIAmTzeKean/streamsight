@@ -1,10 +1,8 @@
-from typing import Optional
-
 import numpy as np
 from scipy.sparse import csr_matrix
 
 
-def get_top_K_ranks(X: csr_matrix, K: Optional[int] = None) -> csr_matrix:
+def get_top_K_ranks(X: csr_matrix, K: None | int = None) -> csr_matrix:
     """Returns a matrix of ranks assigned to the largest K values in X.
 
     Selects K largest values for every row in X and assigns a rank to each.
@@ -33,7 +31,7 @@ def get_top_K_ranks(X: csr_matrix, K: Optional[int] = None) -> csr_matrix:
     return X_top_K
 
 
-def get_top_K_values(X: csr_matrix, K: Optional[int] = None) -> csr_matrix:
+def get_top_K_values(X: csr_matrix, K: None | int = None) -> csr_matrix:
     """Returns a matrix of only the K largest values for every row in X.
 
     Selects the top-K items for every user (which is equal to the K nearest neighbours.)
@@ -47,6 +45,7 @@ def get_top_K_values(X: csr_matrix, K: Optional[int] = None) -> csr_matrix:
     :rtype: csr_matrix
     """
     top_K_ranks = get_top_K_ranks(X, K)
-    top_K_ranks[top_K_ranks > 0] = 1  # ranks to binary
-
-    return top_K_ranks.multiply(X)  # elementwise multiplication
+    # Convert the position into binary values (1 if in top K, 0 otherwise)
+    top_K_ranks[top_K_ranks > 0] = 1
+    # elementwise multiplication with orignal matrix to get values
+    return top_K_ranks.multiply(X)

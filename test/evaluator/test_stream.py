@@ -3,7 +3,7 @@ from typing import Literal
 import pytest
 
 from streamsight.algorithms import ItemKNNIncremental
-from streamsight.datasets.base import Dataset
+from streamsight.datasets import Dataset
 from streamsight.evaluators import EvaluatorStreamerBuilder
 from streamsight.settings.sliding_window_setting import SlidingWindowSetting
 

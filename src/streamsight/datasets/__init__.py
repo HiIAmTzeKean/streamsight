@@ -63,17 +63,28 @@ Refer to the base class documentation for implementation details.
 - `streamsight.preprocessing`: Data preprocessing and filtering utilities
 """
 
-from streamsight.datasets.amazon import (
+from .datasets import (
     AmazonBookDataset,
     AmazonMovieDataset,
     AmazonMusicDataset,
     AmazonSubscriptionBoxesDataset,
+    Dataset,
+    LastFMDataset,
+    MovieLens100K,
+    TestDataset,
+    YelpDataset,
 )
-from streamsight.datasets.base import Dataset
-from streamsight.datasets.lastfm import LastFMDataset
-from streamsight.datasets.movielens import MovieLens100K
-from streamsight.datasets.test import TestDataset
-from streamsight.datasets.yelp import YelpDataset
+from .metadata import (
+    AmazonBookItemMetadata,
+    AmazonMovieItemMetadata,
+    AmazonMusicItemMetadata,
+    LastFMItemMetadata,
+    LastFMTagMetadata,
+    LastFMUserMetadata,
+    Metadata,
+    MovieLens100kItemMetadata,
+    MovieLens100kUserMetadata,
+)
 
 
 __all__ = [
@@ -86,4 +97,13 @@ __all__ = [
     "YelpDataset",
     "TestDataset",
     "Dataset",
+    "Metadata",
+    "MovieLens100kUserMetadata",
+    "MovieLens100kItemMetadata",
+    "AmazonBookItemMetadata",
+    "AmazonMovieItemMetadata",
+    "AmazonMusicItemMetadata",
+    "LastFMUserMetadata",
+    "LastFMItemMetadata",
+    "LastFMTagMetadata",
 ]

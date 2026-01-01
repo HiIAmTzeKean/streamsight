@@ -1,6 +1,6 @@
 import pandas as pd
 
-from streamsight.datasets.base import Dataset
+from .base import Dataset
 
 
 class TestDataset(Dataset):

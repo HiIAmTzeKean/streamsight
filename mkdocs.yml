@@ -5,6 +5,7 @@ repo_name: HiIAmTzeKean/Streamsight
 nav:
   - Home: index.md
   - About: about.md
+  - Poster: poster.md
   - API Reference: reference/
 
 docs_dir: docs

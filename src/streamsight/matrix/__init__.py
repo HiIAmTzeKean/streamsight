@@ -5,7 +5,7 @@ Interaction Matrix
 -------------------
 The InteractionMatrix class is used to create an interaction matrix from the
 dataset loaded. The interaction matrix stores a dataframe under the hood and
-provides functionality to convert the dataframe to a CSR matrix and other 
+provides functionality to convert the dataframe to a CSR matrix and other
 operations which are useful for building recommendation systems.
 
 .. autosummary::
@@ -25,6 +25,17 @@ These provides functionality for the matrix module and for use cases in other mo
     ItemUserBasedEnum
     TimestampAttributeMissingError
 """
-from streamsight.matrix.exception import TimestampAttributeMissingError
-from streamsight.matrix.interaction_matrix import InteractionMatrix, ItemUserBasedEnum
-from streamsight.matrix.util import Matrix, to_csr_matrix
+
+from .exception import TimestampAttributeMissingError
+from .interaction_matrix import InteractionMatrix, ItemUserBasedEnum
+from .prediction_matrix import PredictionMatrix
+from .util import to_csr_matrix
+
+
+__all__ = [
+    "InteractionMatrix",
+    "PredictionMatrix",
+    "to_csr_matrix",
+    "ItemUserBasedEnum",
+    "TimestampAttributeMissingError",
+]

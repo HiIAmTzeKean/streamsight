@@ -1,6 +1,6 @@
 import pytest
 
-from streamsight.datasets.base import Dataset
+from streamsight.datasets import Dataset
 from streamsight.matrix import InteractionMatrix
 from streamsight.preprocessing import DataFramePreprocessor, MinItemsPerUser
 

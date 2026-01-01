@@ -1,6 +1,5 @@
 import logging
 from collections import defaultdict
-from logging import warn
 from typing import Optional
 
 import pandas as pd
@@ -33,7 +32,7 @@ class MetricAccumulator:
         :type algorithm_name: str
         """
         if metric.identifier in self.acc[algorithm_name]:
-            warn(
+            logger.warning(
                 f"Metric {metric.identifier} already exists for algorithm {algorithm_name}. Overwriting..."
             )
 
@@ -42,7 +41,7 @@ class MetricAccumulator:
         self.acc[algorithm_name][metric.identifier] = metric
 
     @property
-    def user_level_metrics(self):
+    def user_level_metrics(self) -> defaultdict:
         results = defaultdict()
         for algo_name in self.acc:
             for metric_identifier in self.acc[algo_name]:

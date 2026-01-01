@@ -1,4 +1,5 @@
-import streamsight.datasets
+import importlib
+
 from .base import Registry
 
 
@@ -9,7 +10,8 @@ class DatasetRegistry(Registry):
     """
 
     def __init__(self) -> None:
-        super().__init__(streamsight.datasets)
+        module = importlib.import_module('streamsight.datasets')
+        super().__init__(module)
 
 
 DATASET_REGISTRY = DatasetRegistry()

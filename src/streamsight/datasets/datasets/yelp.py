@@ -4,8 +4,8 @@ from typing import ClassVar, NoReturn
 import numpy as np
 import pandas as pd
 
-from streamsight.datasets.base import Dataset
-from streamsight.datasets.config.yelp import YelpDatasetConfig
+from ..config.yelp import YelpDatasetConfig
+from .base import Dataset
 
 
 logger = logging.getLogger(__name__)
