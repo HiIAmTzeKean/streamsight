@@ -10,8 +10,9 @@ non-programmers.
 
 ## Contributors
 
-- Ng Tze Kean ([GitHub](https://github.com/HiIAmTzeKean))
+Ng Tze Kean ([GitHub](https://github.com/HiIAmTzeKean))
 
 ### Contact us
 
-here
+Reach out if there are any questions or suggestions either via a GitHub issue or
+email at <ngtzekean@gmail.com>
