@@ -298,33 +298,6 @@ class Setting(BaseModel, ParamMixin):
                 check_empty(f"Ground truth data[{dataset_idx}]", n_ground_truth)
         logger.debug("Size of split sets are checked.")
 
-    def next_incremental_data(self, reset: bool = False) -> InteractionMatrix:
-        """Get the next incremental data.
-
-        Get the next incremental data for the corresponding split.
-        If the setting is a sliding window setting, then it will iterate over
-        the list of incremental data.
-
-        Args:
-            reset: Whether to reset the generator. Defaults to False.
-
-        Returns:
-            Next incremental data for the corresponding split.
-
-        Raises:
-            AttributeError: If setting is not SlidingWindowSetting.
-            EOWSettingError: If there is no more data to iterate over.
-        """
-        if not self._sliding_window_setting:
-            raise AttributeError("Incremental data is only available for sliding window setting.")
-        if reset or not hasattr(self, "incremental_data_iter"):
-            self._incremental_data_generator()
-
-        try:
-            return next(self.incremental_data_iter)
-        except StopIteration:
-            raise EOWSettingError()
-
     def restore(self, n: int = 0) -> None:
         """Restore last run.
 
