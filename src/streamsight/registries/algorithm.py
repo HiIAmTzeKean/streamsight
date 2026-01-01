@@ -1,10 +1,10 @@
+import importlib
 from collections.abc import Iterator
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any, NamedTuple, Optional
+from typing import Any, NamedTuple
 from uuid import UUID
 
-import streamsight.algorithms
 from streamsight.algorithms import Algorithm
 from .base import Registry
 
@@ -21,7 +21,8 @@ class AlgorithmRegistry(Registry):
         The registry is initialized with the `streamsight.algorithms` module
         so that all built-in algorithms are available by default.
         """
-        super().__init__(streamsight.algorithms)
+        module = importlib.import_module('streamsight.algorithms')
+        super().__init__(module)
 
 
 ALGORITHM_REGISTRY = AlgorithmRegistry()
@@ -62,7 +63,7 @@ class AlgorithmEntry(NamedTuple):
     """
 
     name: str
-    params: Optional[dict[str, Any]] = None
+    params: None | dict[str, Any] = None
 
 
 class AlgorithmStateEnum(StrEnum):

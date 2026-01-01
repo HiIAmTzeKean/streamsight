@@ -28,7 +28,7 @@ class Registry(BaseModel):
         for class_name in self.src.__all__:
             try:
                 cls = getattr(self.src, class_name)
-                if not inspect.isclass(cls) or cls.IS_BASE:
+                if not inspect.isclass(cls):
                     continue
                 self.register(class_name, cls)
             except AttributeError:
@@ -108,4 +108,4 @@ class Registry(BaseModel):
         if include_base:
             return list(self.registered.keys())
         else:
-            return [key for key, cls in self.registered.items() if getattr(cls, "IS_BASE", False)]
+            return [key for key, cls in self.registered.items() if not getattr(cls, "IS_BASE", True)]
