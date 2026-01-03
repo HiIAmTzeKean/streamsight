@@ -91,13 +91,6 @@ class InteractionMatrix:
     ) -> None:
         self.shape: tuple[int, int]
         """The shape of the interaction matrix, i.e. `|user| x |item|`."""
-
-        col_mapper = {
-            item_ix: InteractionMatrix.ITEM_IX,
-            user_ix: InteractionMatrix.USER_IX,
-            timestamp_ix: InteractionMatrix.TIMESTAMP_IX,
-        }
-
         if shape:
             self.shape = shape
 
@@ -105,8 +98,12 @@ class InteractionMatrix:
             self._df = df
             return
 
+        col_mapper = {
+            item_ix: InteractionMatrix.ITEM_IX,
+            user_ix: InteractionMatrix.USER_IX,
+            timestamp_ix: InteractionMatrix.TIMESTAMP_IX,
+        }
         df = df.rename(columns=col_mapper)
-        # df = df[[InteractionMatrix.USER_IX, InteractionMatrix.ITEM_IX, InteractionMatrix.TIMESTAMP_IX]].copy()
         required_columns = [
             InteractionMatrix.USER_IX,
             InteractionMatrix.ITEM_IX,
@@ -114,6 +111,7 @@ class InteractionMatrix:
         ]
         extra_columns = [col for col in df.columns if col not in required_columns]
         df = df[required_columns + extra_columns].copy()
+        # TODO refactor this
         df = (
             df.reset_index(drop=True)
             .reset_index()
@@ -124,8 +122,7 @@ class InteractionMatrix:
 
     def mask_shape(
         self,
-        shape: Optional[tuple[int, int]] = None,
-        #    drop_unknown: bool = False,
+        shape: None | tuple[int, int] = None,
         drop_unknown_user: bool = False,
         drop_unknown_item: bool = False,
         inherit_max_id: bool = False,

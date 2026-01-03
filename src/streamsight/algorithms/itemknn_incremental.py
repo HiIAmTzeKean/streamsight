@@ -3,6 +3,7 @@ from typing import Self
 
 from scipy.sparse import csr_matrix, hstack, vstack
 
+from .base import PopularityPaddingMixin, TopKItemSimilarityMatrixAlgorithm
 from .itemknn import ItemKNN
 
 
@@ -20,8 +21,8 @@ class ItemKNNIncremental(ItemKNN):
     IS_BASE: bool = False
 
     def __init__(self, K: int = 10, pad_with_popularity: bool = True) -> None:
-        super().__init__(K=K)
-        self.pad_with_popularity = pad_with_popularity
+        PopularityPaddingMixin.__init__(self, pad_with_popularity=pad_with_popularity)
+        TopKItemSimilarityMatrixAlgorithm.__init__(self, K=K)
         self.X_: None | csr_matrix = None
 
     def _append_training_data(self, X: csr_matrix) -> None:

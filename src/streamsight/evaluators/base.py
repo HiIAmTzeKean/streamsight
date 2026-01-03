@@ -112,6 +112,7 @@ class EvaluatorBase(object):
             Prediction matrix with the same shape as the ground truth matrix.
         """
         if X_pred.shape != X_true_shape:
+            logger.warning("Prediction matrix shape %s is different from ground truth matrix shape %s.", X_pred.shape, X_true_shape)
             # We cannot expect the algorithm to predict an unknown item, so we
             # only check user dimension
             if X_pred.shape[0] < X_true_shape[0] and not self.ignore_unknown_user:

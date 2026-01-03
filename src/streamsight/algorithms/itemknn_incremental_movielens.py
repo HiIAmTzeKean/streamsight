@@ -6,15 +6,15 @@ from scipy.sparse import csr_matrix, hstack, vstack
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import OneHotEncoder
 
-from streamsight.algorithms.itemknn import ItemKNN
 from streamsight.matrix import InteractionMatrix
 from streamsight.utils.util import add_rows_to_csr_matrix
+from .itemknn_incremental import ItemKNNIncremental
 
 
 logger = logging.getLogger(__name__)
 
 
-class ItemKNNIncrementalMovieLens100K(ItemKNN):
+class ItemKNNIncrementalMovieLens100K(ItemKNNIncremental):
     """Incremental version of ItemKNN algorithm with MovieLens100k Metadata.
 
     This class extends the ItemKNN algorithm to allow for incremental updates
@@ -23,55 +23,15 @@ class ItemKNNIncrementalMovieLens100K(ItemKNN):
     """
     IS_BASE: bool = False
 
-    def __init__(self, K=10, metadata: pd.DataFrame = None) -> None:
+    def __init__(self, metadata: pd.DataFrame, K:int=10) -> None:
         super().__init__(K)
         if metadata is None:
             raise ValueError("Metadata is required for ItemKNNIncrementalMovieLens100K")
         self.metadata = metadata.copy()
-        self.training_data: csr_matrix = None
-
-    def _append_training_data(self, X: csr_matrix) -> None:
-        """Append a new interaction matrix to the historical data.
-
-        :param X: The new interaction matrix
-        :type X: csr_matrix
-        """
-        if self.training_data is None:
-            return
-        X_prev: csr_matrix = self.training_data.copy()
-        new_num_rows = max(X_prev.shape[0], X.shape[0])
-        new_num_cols = max(X_prev.shape[1], X.shape[1])
-        # Pad the previous matrix
-        if X_prev.shape[0] < new_num_rows:  # Pad rows
-            row_padding = csr_matrix((new_num_rows - X_prev.shape[0], X_prev.shape[1]))
-            X_prev = vstack([X_prev, row_padding])
-        if X_prev.shape[1] < new_num_cols:  # Pad columns
-            col_padding = csr_matrix((X_prev.shape[0], new_num_cols - X_prev.shape[1]))
-            X_prev = hstack([X_prev, col_padding])
-
-        # Pad the current matrix
-        if X.shape[0] < new_num_rows:  # Pad rows
-            row_padding = csr_matrix((new_num_rows - X.shape[0], X.shape[1]))
-            X = vstack([X, row_padding])
-        if X.shape[1] < new_num_cols:  # Pad columns
-            col_padding = csr_matrix((X.shape[0], new_num_cols - X.shape[1]))
-            X = hstack([X, col_padding])
-
-        # Merge data
-        self.training_data = X_prev + X
-
-    def _fit(self, X: csr_matrix) -> "ItemKNNIncrementalMovieLens100K":
-        """Fit a cosine similarity matrix from item to item."""
-        if self.training_data is None:
-            self.training_data = X.copy()
-        else:
-            self._append_training_data(X)
-        super()._fit(self.training_data)
-        return self
 
     def _predict(self, X: csr_matrix, predict_im: InteractionMatrix) -> csr_matrix:
         """Predict the K most similar items for each item using the latest data."""
-        X_pred = super()._predict(self.training_data)
+        X_pred = super()._predict(self.X_)
         # ID indexing starts at 0, so max_id + 1 is the number of unique IDs
         max_user_id = predict_im.max_user_id + 1
         max_item_id = predict_im.max_item_id + 1
