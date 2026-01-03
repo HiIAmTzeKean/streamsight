@@ -1,6 +1,6 @@
 import logging
 
-from streamsight.algorithms.itemknn import ItemKNN
+from .itemknn import ItemKNN
 
 
 logger = logging.getLogger(__name__)
@@ -15,6 +15,3 @@ class ItemKNNRolling(ItemKNN):
     """
 
     IS_BASE: bool = False
-
-    def __init__(self, K: int = 10) -> None:
-        super().__init__(K)

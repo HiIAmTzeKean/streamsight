@@ -23,14 +23,14 @@ class ItemKNNIncrementalMovieLens100K(ItemKNN):
     """
     IS_BASE: bool = False
 
-    def __init__(self, K=10, metadata: pd.DataFrame = None):
+    def __init__(self, K=10, metadata: pd.DataFrame = None) -> None:
         super().__init__(K)
         if metadata is None:
             raise ValueError("Metadata is required for ItemKNNIncrementalMovieLens100K")
         self.metadata = metadata.copy()
         self.training_data: csr_matrix = None
 
-    def _append_training_data(self, X: csr_matrix):
+    def _append_training_data(self, X: csr_matrix) -> None:
         """Append a new interaction matrix to the historical data.
 
         :param X: The new interaction matrix

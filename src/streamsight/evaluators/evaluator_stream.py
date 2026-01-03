@@ -1,14 +1,14 @@
 import datetime
 import logging
 import warnings
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, cast
 from uuid import NAMESPACE_DNS, UUID, uuid5
 from warnings import warn
 
 from scipy.sparse import csr_matrix
 
 from streamsight.algorithms import Algorithm
-from streamsight.matrix import InteractionMatrix
+from streamsight.matrix import InteractionMatrix, PredictionMatrix
 from streamsight.metrics import Metric
 from streamsight.registries import (
     METRIC_REGISTRY,
@@ -81,9 +81,9 @@ class EvaluatorStreamer(EvaluatorBase):
             seed,
         )
         self.status_registry = AlgorithmStatusRegistry()
-        self._unlabeled_data_cache: InteractionMatrix
-        self._ground_truth_data_cache: InteractionMatrix
-        self._training_data_cache: InteractionMatrix
+        self._unlabeled_data_cache: PredictionMatrix
+        self._ground_truth_data_cache: PredictionMatrix
+        self._training_data_cache: PredictionMatrix
 
         self.has_started: bool = False
         self.has_predicted: bool = False
@@ -115,6 +115,7 @@ class EvaluatorStreamer(EvaluatorBase):
         training_data = self.setting.background_data
         self.user_item_base.update_known_user_item_base(training_data)
         training_data.mask_shape(self.user_item_base.known_shape)
+        training_data = cast(PredictionMatrix, training_data)
         self._training_data_cache = training_data
         self._cache_evaluation_data()
         logger.debug("Evaluator is ready for streaming")
@@ -249,7 +250,7 @@ class EvaluatorStreamer(EvaluatorBase):
             and self.status_registry.is_all_same_data_segment()
         ):
             self.user_item_base.reset_unknown_user_item_base()
-            incremental_data = self.setting.get_split_at(self._run_step)['incremental']
+            incremental_data = self.setting.get_split_at(self._run_step).incremental
             self.user_item_base.update_known_user_item_base(incremental_data)
             incremental_data.mask_shape(self.user_item_base.known_shape)
             self._training_data_cache = incremental_data
@@ -288,7 +289,7 @@ class EvaluatorStreamer(EvaluatorBase):
         # release data to the algorithm
         return self._training_data_cache
 
-    def get_unlabeled_data(self, algo_id: UUID) -> Optional[InteractionMatrix]:
+    def get_unlabeled_data(self, algo_id: UUID) -> PredictionMatrix:
         """Get unlabeled data for the algorithm.
 
         Summary
@@ -318,10 +319,11 @@ class EvaluatorStreamer(EvaluatorBase):
         if status in [AlgorithmStateEnum.READY, AlgorithmStateEnum.PREDICTED]:
             return self._unlabeled_data_cache
         elif status == AlgorithmStateEnum.COMPLETED:
-            logger.warning(AlgorithmStatusWarning(algo_id, status, "complete"))
-            return
+            warning_msg = AlgorithmStatusWarning(algo_id, status, "complete")
         else:
-            logger.warning(AlgorithmStatusWarning(algo_id, status, "unlabeled"))
+            warning_msg = AlgorithmStatusWarning(algo_id, status, "unlabeled")
+        logger.warning(warning_msg)
+        raise ConnectionError(warning_msg)
 
     def submit_prediction(
         self, algo_id: UUID, X_pred: Union[csr_matrix, InteractionMatrix]

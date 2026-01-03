@@ -1,11 +1,10 @@
 import logging
-import warnings
-from typing import Literal, Optional, Union
+from typing import Literal, Optional, Union, cast
 
 import pandas as pd
 from scipy.sparse import csr_matrix
 
-from streamsight.matrix import InteractionMatrix
+from streamsight.matrix import InteractionMatrix, PredictionMatrix
 from streamsight.registries import MetricEntry
 from streamsight.settings import EOWSettingError, Setting
 from .accumulator import MetricAccumulator
@@ -53,7 +52,7 @@ class EvaluatorBase(object):
         self._acc: MetricAccumulator
         self._current_timestamp: int
 
-    def _get_evaluation_data(self) -> tuple[InteractionMatrix, InteractionMatrix, int]:
+    def _get_evaluation_data(self) -> tuple[PredictionMatrix, PredictionMatrix, int]:
         """Get the evaluation data for the current step.
 
         Internal method to get the evaluation data for the current step. The
@@ -73,32 +72,25 @@ class EvaluatorBase(object):
         """
         try:
             split = self.setting.get_split_at(self._run_step)
-            unlabeled_data = split['unlabeled']
-            ground_truth_data = split['ground_truth']
-            current_timestamp = split['t_window']
-            self._current_timestamp = current_timestamp
+            unlabeled_data = split.unlabeled
+            ground_truth_data = split.ground_truth
+            self._current_timestamp = split.t_window
             self._run_step += 1
         except EOWSettingError:
             raise EOWSettingError("There is no more data to be processed, EOW reached")
 
         self.user_item_base.update_unknown_user_item_base(ground_truth_data)
 
-        # unlabeled data will respect the unknown user and item
-        # and thus will take the shape of the known user and item
-        # the ground truth must follow the same shape as the unlabeled data
-        # for evaluation purposes. This means that we drop the unknown user and item
-        # from the ground truth data
-        # we don't drop unknown users because eventually we pad the predictions for new users randomly
-        # unknown items need to be dropped as it is impossible to recommend an unknown item
-        with warnings.catch_warnings(action="ignore"):
-            unlabeled_data.mask_shape(self.user_item_base.known_shape)
+        mask_shape = (self.user_item_base.known_shape[0], self.user_item_base.known_shape[1])
+        unlabeled_data.mask_shape(mask_shape)
+        unlabeled_data = cast(PredictionMatrix, unlabeled_data)
         ground_truth_data.mask_shape(
-            self.user_item_base.known_shape,
-            # drop_unknown_user=self.ignore_unknown_user,
+            mask_shape,
             drop_unknown_item=self.ignore_unknown_item,
-            inherit_max_id=True,
+            inherit_max_id=True,  # Ensures that shape of ground truth contains all user id that appears globally
         )
-        return unlabeled_data, ground_truth_data, current_timestamp
+        ground_truth_data = cast(PredictionMatrix, ground_truth_data)
+        return unlabeled_data, ground_truth_data, self._current_timestamp
 
     def _prediction_shape_handler(
         self, X_true_shape: tuple[int, int], X_pred: csr_matrix

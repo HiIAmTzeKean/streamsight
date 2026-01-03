@@ -143,12 +143,12 @@ class InteractionMatrix:
 
         Given the following case where the data is as follows::
 
-            > uid: [0, 1, 2, 3, 4]
-            > iid: [0, 1, 2, 3, -1]
-            > ts : [0, 1, 2, 3, 4]
+            > uid: [0, 1, 2, 3, 4, 5]
+            > iid: [0, 1, 2, 3, -1, -1]
+            > ts : [0, 1, 2, 3, 4, 6]
 
-        Where user 4 is the user to be predicted. Assuming that user 4 is an
-        unknown user, that is, the model has never seen user 4 before. The shape
+        Where user 4, 5 is the user to be predicted. Assuming that user 4, 5 is an
+        unknown user, that is, the model has never seen user 4, 5 before. The shape
         of the matrix should be (4, 4). This should be defined when calling the
         function in :param:`shape`.
 
@@ -184,7 +184,7 @@ class InteractionMatrix:
         """
 
         if not shape:
-            # infer shape from the data, it does not make sense for user to
+            # infer shape from the data, it does not make sense to
             # drop unknown user and item if shape is not defined
             known_user = self._df[self._df != -1][InteractionMatrix.USER_IX].nunique()
             known_item = self._df[self._df != -1][InteractionMatrix.ITEM_IX].nunique()
@@ -818,8 +818,40 @@ class InteractionMatrix:
         return self._df[self.TIMESTAMP_IX].max()
 
     @property
+    def max_global_user_id(self) -> int:
+        """The highest known global user ID in the interaction matrix.
+
+        The difference between `max_global_user_id` and `max_user_id` is that
+        `max_global_user_id` considers all user IDs present in the dataframe,
+        including users that are only encountered during prediction time.
+        """
+        return max(int(self._df[InteractionMatrix.USER_IX].max()), self.shape[0])
+
+    @property
+    def max_global_item_id(self) -> int:
+        return max(int(self._df[InteractionMatrix.ITEM_IX].max()), self.shape[1])
+
+    @property
+    def max_known_user_id(self) -> int:
+        """The highest known user ID in the interaction matrix.
+        """
+        max_val = self._df[(self._df != -1).all(axis=1)][InteractionMatrix.USER_IX].max()
+        if pd.isna(max_val):
+            return self.shape[0]
+        return min(int(max_val), self.shape[0])
+
+    @property
+    def max_known_item_id(self) -> int:
+        """The highest known user ID in the interaction matrix.
+        """
+        max_val = self._df[(self._df != -1).all(axis=1)][InteractionMatrix.ITEM_IX].max()
+        if pd.isna(max_val):
+            return self.shape[1]
+        return min(int(max_val), self.shape[1])
+
+    @property
     def max_user_id(self) -> int:
-        """The highest user ID in the interaction matrix.
+        """The highest known user ID in the interaction matrix.
 
         :return: The highest user ID.
         :rtype: int
@@ -831,7 +863,7 @@ class InteractionMatrix:
 
     @property
     def max_item_id(self) -> int:
-        """The highest item ID in the interaction matrix.
+        """The highest known item ID in the interaction matrix.
 
         In the case of an empty matrix, the highest item ID is -1. This is
         consistent with the the definition that -1 denotes the item that is
