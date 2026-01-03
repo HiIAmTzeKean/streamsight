@@ -251,8 +251,11 @@ class EvaluatorStreamer(EvaluatorBase):
         ):
             self.user_item_base.reset_unknown_user_item_base()
             incremental_data = self.setting.get_split_at(self._run_step).incremental
+            if incremental_data is None:
+                raise EOWSettingError("No more data to stream")
             self.user_item_base.update_known_user_item_base(incremental_data)
             incremental_data.mask_shape(self.user_item_base.known_shape)
+            incremental_data = cast(PredictionMatrix, incremental_data)
             self._training_data_cache = incremental_data
 
             self._cache_evaluation_data()

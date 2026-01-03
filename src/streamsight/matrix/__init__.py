@@ -29,7 +29,7 @@ These provides functionality for the matrix module and for use cases in other mo
 from .exception import TimestampAttributeMissingError
 from .interaction_matrix import InteractionMatrix, ItemUserBasedEnum
 from .prediction_matrix import PredictionMatrix
-from .util import Matrix, to_csr_matrix
+from .util import to_csr_matrix
 
 
 __all__ = [
@@ -37,6 +37,5 @@ __all__ = [
     "PredictionMatrix",
     "to_csr_matrix",
     "ItemUserBasedEnum",
-    "Matrix",
     "TimestampAttributeMissingError",
 ]

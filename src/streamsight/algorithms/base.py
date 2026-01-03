@@ -10,7 +10,7 @@ from scipy.sparse import csr_matrix
 from sklearn.base import BaseEstimator
 from sklearn.utils.validation import check_is_fitted
 
-from streamsight.matrix import InteractionMatrix, ItemUserBasedEnum, Matrix, PredictionMatrix, to_csr_matrix
+from streamsight.matrix import InteractionMatrix, ItemUserBasedEnum, PredictionMatrix, to_csr_matrix
 from streamsight.utils.util import add_rows_to_csr_matrix
 from ..models import BaseModel, ParamMixin
 
@@ -126,13 +126,13 @@ class Algorithm(BaseEstimator, BaseModel, ParamMixin):
         """
         check_is_fitted(self)
 
-    def _transform_fit_input(self, X: InteractionMatrix) -> csr_matrix:
+    def _transform_fit_input(self, X: InteractionMatrix | csr_matrix) -> csr_matrix:
         """Transform the training data to expected type
 
         Data will be turned into a binary csr matrix.
 
         :param X: User-item interaction matrix to fit the model to
-        :type X: InteractionMatrix
+        :type X: InteractionMatrix | csr_matrix
         :return: Transformed user-item interaction matrix to fit the model
         :rtype: csr_matrix
         """
@@ -268,10 +268,14 @@ class PopularityPaddingMixin:
         normalized_scores = interaction_counts / interaction_counts.max()
 
         num_items = X.shape[1]
-        if num_items < self.K:
+        if hasattr(self, "K"):
+            k_value = self.K
+        else:
+            k_value = 100
+        if num_items < k_value:
             logger.warning("K is larger than the number of items.")
 
-        effective_k = min(self.K, num_items)
+        effective_k = min(k_value, num_items)
         # Get indices of top-K items by popularity
         top_k_indices = np.argpartition(normalized_scores, -effective_k)[-effective_k:]
         popularity_vector = np.zeros(num_items)
@@ -311,7 +315,6 @@ class PopularityPaddingMixin:
         for user_id in filtered.index:
             if user_id >= known_user_id:
                 X_pred[user_id, :] = popular_items
-        logger.debug(f"Padding by {self.name} completed")
         return X_pred
 
 

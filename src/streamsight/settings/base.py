@@ -133,9 +133,7 @@ class Setting(BaseModel, ParamMixin):
             KeyError: If the setting has not been split yet.
         """
         if not self.is_ready:
-            raise KeyError(
-                "Setting has not been split yet. Call split() method before accessing the property."
-            )
+            raise KeyError("Setting has not been split yet. Call split() method before accessing the property.")
 
     @property
     def num_split(self) -> int:
@@ -342,8 +340,8 @@ class Setting(BaseModel, ParamMixin):
                 ground_truth=self._ground_truth_data[self.current_index],
                 t_window=self._t_window[self.current_index],
                 incremental=(
-                    self._incremental_data[self.current_index]
-                    if self.current_index < len(self._incremental_data)
+                    self._incremental_data[self.current_index - 1]
+                    if self.current_index < len(self._incremental_data) and self.current_index > 1
                     else None
                 ),
             )
@@ -353,9 +351,7 @@ class Setting(BaseModel, ParamMixin):
                 or isinstance(self._ground_truth_data, list)
                 or isinstance(self._t_window, list)
             ):
-                raise ValueError(
-                    "Expected single InteractionMatrix for non-sliding window setting."
-                )
+                raise ValueError("Expected single InteractionMatrix for non-sliding window setting.")
             result = SplitResult(
                 unlabeled=self._unlabeled_data,
                 ground_truth=self._ground_truth_data,
@@ -366,7 +362,6 @@ class Setting(BaseModel, ParamMixin):
         self.current_index += 1
         return result
 
-    @cache
     def get_split_at(self, index: int) -> SplitResult:
         """Get the split data at a specific index.
 
@@ -393,7 +388,7 @@ class Setting(BaseModel, ParamMixin):
                 unlabeled=self._unlabeled_data[index],
                 ground_truth=self._ground_truth_data[index],
                 incremental=(
-                    self._incremental_data[index] if index < len(self._incremental_data) else None
+                    self._incremental_data[index - 1] if index < len(self._incremental_data) and index > 0 else None
                 ),
                 t_window=self._t_window[index],
             )

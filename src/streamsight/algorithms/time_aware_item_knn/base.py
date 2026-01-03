@@ -6,13 +6,12 @@
 #   Robin Verachtert
 
 import logging
-from warnings import warn
 
 import numpy as np
 from scipy.sparse import csr_matrix
 
-from streamsight.algorithms.base import TopKItemSimilarityMatrixAlgorithm
-from streamsight.matrix import InteractionMatrix, Matrix
+from streamsight.algorithms.base import TopKItemSimilarityMatrixAlgorithm, PopularityPaddingMixin
+from streamsight.matrix import InteractionMatrix
 from streamsight.utils.util import add_rows_to_csr_matrix
 from .decay_functions import (
     ConcaveDecay,
@@ -36,7 +35,7 @@ EPSILON = 1e-13
 logger = logging.getLogger(__name__)
 
 
-class TARSItemKNN(TopKItemSimilarityMatrixAlgorithm):
+class TARSItemKNN(TopKItemSimilarityMatrixAlgorithm, PopularityPaddingMixin):
     """Framework for time aware variants of the ItemKNN algorithm.
 
     This class was inspired by works from Liu, Nathan N., et al. (2010), Ding et al. (2005) and Lee et al. (2007).
@@ -200,34 +199,6 @@ class TARSItemKNN(TopKItemSimilarityMatrixAlgorithm):
 
         logger.debug(f"Padding by {self.name} completed")
         return X_pred
-
-    def get_popularity_scores(self, X: csr_matrix):
-        """Pad the predictions with popular items for users that are not in the training data."""
-        interaction_counts = X.sum(axis=0).A[0]
-        sorted_scores = interaction_counts / interaction_counts.max()
-
-        num_items = X.shape[1]
-        if num_items < self.K:
-            warn("K is larger than the number of items.", UserWarning)
-
-        K = min(self.K, num_items)
-        ind = np.argpartition(sorted_scores, -K)[-K:]
-        a = np.zeros(X.shape[1])
-        a[ind] = sorted_scores[ind]
-
-        return a
-
-    def _transform_fit_input(self, X: Matrix) -> InteractionMatrix:
-        """Weigh each of the interactions by the decay factor of its timestamp."""
-        self._assert_is_interaction_matrix(X)
-        self._assert_has_timestamps(X)
-        return X
-
-    def _transform_predict_input(self, X: Matrix) -> InteractionMatrix:
-        """Weigh each of the interactions by the decay factor of its timestamp."""
-        self._assert_is_interaction_matrix(X)
-        self._assert_has_timestamps(X)
-        return X
 
     def _fit(self, X: csr_matrix) -> "TARSItemKNN":
         """Fit a cosine similarity matrix from item to item."""
