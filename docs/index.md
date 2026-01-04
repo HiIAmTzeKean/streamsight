@@ -1,6 +1,6 @@
 ## Welcome to streamsight's documentation
 
-![streamsight logo](assets/_static/logo_no_text.png)
+![streamsight logo](assets/_static/logo_name.png)
 
 Streamsight is an open-source Python toolkit that models temporal context to more
 accurately represent real-world offline evaluation scenarios. We provide an API
