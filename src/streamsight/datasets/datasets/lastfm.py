@@ -9,7 +9,7 @@ from typing_extensions import ClassVar
 
 from streamsight.datasets.base import Dataset
 from streamsight.datasets.config import LastFMDatasetConfig
-from .metadata.lastfm import LastFMItemMetadata, LastFMTagMetadata, LastFMUserMetadata
+from ..metadata.lastfm import LastFMItemMetadata, LastFMTagMetadata, LastFMUserMetadata
 
 
 logger = logging.getLogger(__name__)

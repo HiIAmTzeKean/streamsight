@@ -1,6 +1,6 @@
+import importlib
 from typing import NamedTuple
 
-import streamsight.metrics
 from .base import Registry
 
 
@@ -11,7 +11,8 @@ class MetricRegistry(Registry):
     """
 
     def __init__(self) -> None:
-        super().__init__(streamsight.metrics)
+        module = importlib.import_module('streamsight.metrics')
+        super().__init__(module)
 
 
 METRIC_REGISTRY = MetricRegistry()

@@ -1,6 +1,7 @@
 import logging
 import time
 from abc import abstractmethod
+from functools import cache
 from typing import Any, Self, Union
 from warnings import warn
 
@@ -8,6 +9,7 @@ from streamsight.matrix import InteractionMatrix
 from ..models import BaseModel, ParamMixin
 from .exception import EOWSettingError
 from .processor import PredictionDataProcessor
+from .schema import SplitResult
 
 
 logger = logging.getLogger(__name__)
@@ -131,9 +133,7 @@ class Setting(BaseModel, ParamMixin):
             KeyError: If the setting has not been split yet.
         """
         if not self.is_ready:
-            raise KeyError(
-                "Setting has not been split yet. Call split() method before accessing the property."
-            )
+            raise KeyError("Setting has not been split yet. Call split() method before accessing the property.")
 
     @property
     def num_split(self) -> int:
@@ -298,33 +298,6 @@ class Setting(BaseModel, ParamMixin):
                 check_empty(f"Ground truth data[{dataset_idx}]", n_ground_truth)
         logger.debug("Size of split sets are checked.")
 
-    def next_incremental_data(self, reset: bool = False) -> InteractionMatrix:
-        """Get the next incremental data.
-
-        Get the next incremental data for the corresponding split.
-        If the setting is a sliding window setting, then it will iterate over
-        the list of incremental data.
-
-        Args:
-            reset: Whether to reset the generator. Defaults to False.
-
-        Returns:
-            Next incremental data for the corresponding split.
-
-        Raises:
-            AttributeError: If setting is not SlidingWindowSetting.
-            EOWSettingError: If there is no more data to iterate over.
-        """
-        if not self._sliding_window_setting:
-            raise AttributeError("Incremental data is only available for sliding window setting.")
-        if reset or not hasattr(self, "incremental_data_iter"):
-            self._incremental_data_generator()
-
-        try:
-            return next(self.incremental_data_iter)
-        except StopIteration:
-            raise EOWSettingError()
-
     def restore(self, n: int = 0) -> None:
         """Restore last run.
 
@@ -338,67 +311,65 @@ class Setting(BaseModel, ParamMixin):
         """Iterate over splits in the setting.
 
         Resets the index and returns self as the iterator.
-        Yields a dict for each split: {'unlabeled', 'ground_truth', 't_window', 'incremental'}.
+        Yields a SplitResult for each split: {'unlabeled', 'ground_truth', 't_window', 'incremental'}.
         """
         self.current_index = 0
         return self
 
-    def __next__(self) -> dict:
+    def __next__(self) -> SplitResult:
         """Get the next split.
 
         Returns:
-            Dict with split data.
+            SplitResult with split data.
 
         Raises:
-            StopIteration: If no more splits.
+            EOWSettingError: If no more splits.
         """
         if self.current_index >= self.num_split:
-            raise StopIteration
+            raise EOWSettingError("No more splits available, EOW reached.")
 
         if self._sliding_window_setting:
-            if (
-                not isinstance(self._unlabeled_data, list)
-                or not isinstance(self._ground_truth_data, list)
-                or not isinstance(self._t_window, list)
+            if not (
+                isinstance(self._unlabeled_data, list)
+                and isinstance(self._ground_truth_data, list)
+                and isinstance(self._t_window, list)
             ):
                 raise ValueError("Expected list of InteractionMatrix for sliding window setting.")
-            result = {
-                "unlabeled": self._unlabeled_data[self.current_index],
-                "ground_truth": self._ground_truth_data[self.current_index],
-                "t_window": self._t_window[self.current_index],
-                "incremental": (
-                    self._incremental_data[self.current_index]
-                    if self.current_index < len(self._incremental_data)
+            result = SplitResult(
+                unlabeled=self._unlabeled_data[self.current_index],
+                ground_truth=self._ground_truth_data[self.current_index],
+                t_window=self._t_window[self.current_index],
+                incremental=(
+                    self._incremental_data[self.current_index - 1]
+                    if self.current_index < len(self._incremental_data) and self.current_index > 1
                     else None
                 ),
-            }
+            )
         else:
             if (
                 isinstance(self._unlabeled_data, list)
                 or isinstance(self._ground_truth_data, list)
                 or isinstance(self._t_window, list)
             ):
-                raise ValueError(
-                    "Expected single InteractionMatrix for non-sliding window setting."
-                )
-            result = {
-                "unlabeled": self._unlabeled_data,
-                "ground_truth": self._ground_truth_data,
-                "t_window": self._t_window,
-                "incremental": None,
-            }
+                raise ValueError("Expected single InteractionMatrix for non-sliding window setting.")
+            result = SplitResult(
+                unlabeled=self._unlabeled_data,
+                ground_truth=self._ground_truth_data,
+                t_window=self._t_window,
+                incremental=None,
+            )
 
         self.current_index += 1
         return result
 
-    def get_split_at(self, index: int) -> dict:
+    def get_split_at(self, index: int) -> SplitResult:
         """Get the split data at a specific index.
 
         Args:
             index: The index of the split to retrieve.
 
         Returns:
-            Dict with split data: {'unlabeled', 'ground_truth', 't_window', 'incremental'}.
+            SplitResult with keys: 'unlabeled', 'ground_truth', 't_window', 'incremental'.
 
         Raises:
             IndexError: If index is out of range.
@@ -407,20 +378,20 @@ class Setting(BaseModel, ParamMixin):
             raise IndexError(f"Index {index} out of range for {self.num_split} splits")
 
         if self._sliding_window_setting:
-            if (
-                not isinstance(self._unlabeled_data, list)
-                or not isinstance(self._ground_truth_data, list)
-                or not isinstance(self._t_window, list)
+            if not (
+                isinstance(self._unlabeled_data, list)
+                and isinstance(self._ground_truth_data, list)
+                and isinstance(self._t_window, list)
             ):
                 raise ValueError("Expected list of InteractionMatrix for sliding window setting.")
-            result = {
-                "unlabeled": self._unlabeled_data[index],
-                "ground_truth": self._ground_truth_data[index],
-                "t_window": self._t_window[index],
-                "incremental": (
-                    self._incremental_data[index] if index < len(self._incremental_data) else None
+            result = SplitResult(
+                unlabeled=self._unlabeled_data[index],
+                ground_truth=self._ground_truth_data[index],
+                incremental=(
+                    self._incremental_data[index - 1] if index < len(self._incremental_data) and index > 0 else None
                 ),
-            }
+                t_window=self._t_window[index],
+            )
         else:
             if index != 0:
                 raise IndexError("Non-sliding setting has only one split at index 0")
@@ -430,11 +401,11 @@ class Setting(BaseModel, ParamMixin):
                 or isinstance(self._t_window, list)
             ):
                 raise ValueError("Expected single data for non-sliding setting.")
-            result = {
-                "unlabeled": self._unlabeled_data,
-                "ground_truth": self._ground_truth_data,
-                "t_window": self._t_window,
-                "incremental": None,
-            }
+            result = SplitResult(
+                unlabeled=self._unlabeled_data,
+                ground_truth=self._ground_truth_data,
+                incremental=None,
+                t_window=self._t_window,
+            )
 
         return result

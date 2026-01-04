@@ -1,15 +1,13 @@
 import logging
-from typing import Optional
+from typing import Self
 
-import numpy as np
 import pandas as pd
 from scipy.sparse import csr_matrix
 from sklearn.metrics.pairwise import cosine_similarity
 
-from streamsight.algorithms.base import TopKItemSimilarityMatrixAlgorithm
-from streamsight.algorithms.utils import get_top_K_values
-from streamsight.matrix import ItemUserBasedEnum
-from streamsight.utils.util import add_rows_to_csr_matrix
+from streamsight.matrix import ItemUserBasedEnum, PredictionMatrix
+from .base import PopularityPaddingMixin, TopKItemSimilarityMatrixAlgorithm
+from .utils import get_top_K_values
 
 
 logger = logging.getLogger(__name__)
@@ -27,13 +25,15 @@ def compute_cosine_similarity(X: csr_matrix) -> csr_matrix:
     """
     # X.T otherwise we are doing a user KNN
     item_cosine_similarities = cosine_similarity(X.T, dense_output=False)
+    if not isinstance(item_cosine_similarities, csr_matrix):
+        item_cosine_similarities = csr_matrix(item_cosine_similarities)
     # Set diagonal to 0, because we don't want to support self similarity
     item_cosine_similarities.setdiag(0)
 
     return item_cosine_similarities
 
 
-class ItemKNN(TopKItemSimilarityMatrixAlgorithm):
+class ItemKNN(TopKItemSimilarityMatrixAlgorithm, PopularityPaddingMixin):
     """Item K Nearest Neighbours model.
 
     First described in 'Item-based top-n recommendation algorithms.' :cite:`10.1145/963770.963776`
@@ -54,13 +54,9 @@ class ItemKNN(TopKItemSimilarityMatrixAlgorithm):
     :type K: int, optional
     """
 
-    IS_BASE: bool = True
     ITEM_USER_BASED = ItemUserBasedEnum.ITEM
 
-    def __init__(self, K: int = 10) -> None:
-        super().__init__(K=K)
-
-    def _fit(self, X: csr_matrix) -> None:
+    def _fit(self, X: csr_matrix) -> Self:
         """Fit a cosine similarity matrix from item to item
         We assume that X is a binary matrix of shape (n_users, n_items)
         """
@@ -68,60 +64,57 @@ class ItemKNN(TopKItemSimilarityMatrixAlgorithm):
         item_similarities = get_top_K_values(item_similarities, K=self.K)
 
         self.similarity_matrix_ = item_similarities
+        self.X_ = X.copy()
+        return self
 
-    def _predict(self, X: csr_matrix, predict_frame: Optional[pd.DataFrame] = None) -> csr_matrix:
-        """Predict scores for nonzero users in X
+    def _predict(self, X: PredictionMatrix) -> csr_matrix:
+        predict_ui_df = X.get_prediction_data()._df  # noqa: SLF001
 
-        Scores are computed by matrix multiplication of X
-        with the stored similarity matrix.
+        # create a boolean series that is true for index in predict_ui_df.uid
+        uid_to_predict = predict_ui_df[predict_ui_df.uid < self.X_.shape[0]].uid.unique()
+        uid_to_predict = sorted(uid_to_predict.tolist())
 
-        :param X: csr_matrix with interactions
-        :type X: csr_matrix
-        :param predict_frame: DataFrame containing the user IDs to predict for
-        :type predict_frame: pd.DataFrame, optional
-        :return: csr_matrix with scores
-        :rtype: csr_matrix
-        """
-        scores = X @ self.similarity_matrix_
+        # features: csr_matrix = self.X_[uid_to_predict]
+        # we try without any filtering on the feature matrix
+        features: csr_matrix = self.X_
+        scores = features @ self.similarity_matrix_
 
         if not isinstance(scores, csr_matrix):
             scores = csr_matrix(scores)
 
-        return scores
+        intended_shape = (X.max_global_user_id, X.max_global_item_id)
 
-    def _pad_predict(
-        self, X_pred: csr_matrix, intended_shape: tuple, to_predict_frame: pd.DataFrame
-    ) -> csr_matrix:
-        """Pad the predictions with random items for users that are not in the training data.
+        if scores.shape == intended_shape:
+            return scores
 
-        :param X_pred: Predictions made by the algorithm
-        :type X_pred: csr_matrix
-        :param intended_shape: The intended shape of the prediction matrix
-        :type intended_shape: tuple
-        :param to_predict_frame: DataFrame containing the user IDs to predict for
-        :type to_predict_frame: pd.DataFrame
-        :return: The padded prediction matrix
-        :rtype: csr_matrix
-        """
-        if X_pred.shape == intended_shape:
-            return X_pred
+        # there are 2 cases where the shape is different:
+        # 1. The algorithm did not predict unknown user, causing shortage in rows
+        # 2. The algorithm not aware of unknown items, causing shortage in columns
 
-        known_user_id, known_item_id = X_pred.shape
-        X_pred = add_rows_to_csr_matrix(X_pred, intended_shape[0] - known_user_id)
-        # pad users with random items
-        logger.debug(
-            f"Padding user ID in range({known_user_id}, {intended_shape[0]}) with random items"
-        )
-        to_predict = to_predict_frame.value_counts("uid")
-        row = []
-        col = []
-        for user_id in to_predict.index:
-            if user_id >= known_user_id:
-                # For top-K algo, the request could be to predict only 1 item for a user
-                # but by definition we should return top-K items for each user
-                row += [user_id] * self.K
-                col += self.rand_gen.integers(0, known_item_id, self.K).tolist()
-        pad = csr_matrix((np.ones(len(row)), (row, col)), shape=intended_shape)
-        X_pred += pad
-        logger.debug(f"Padding completed")
-        return X_pred
+        # handle case 1
+        if scores.shape[1] < intended_shape[1]:
+            scores = self._pad_unknown_iid_with_none_strategy(
+                y_pred=scores,
+                current_shape=scores.shape,
+                intended_shape=intended_shape,
+            )
+
+        # handle case 2
+        if self.pad_with_popularity:
+            scores = self._pad_uknown_uid_with_popularity_strategy(
+                X_pred=scores,
+                intended_shape=intended_shape,
+                predict_ui_df=predict_ui_df,
+            )
+        else:
+            # current_shape = (X.max_known_user_id, X.max_known_item_id)
+            scores = self._pad_unknown_uid_with_random_strategy(
+                X_pred=scores,
+                current_shape=scores.shape,
+                # current_shape=current_shape,
+                intended_shape=intended_shape,
+                predict_ui_df=predict_ui_df,
+            )
+
+        pred = scores[predict_ui_df["uid"].values]
+        return pred

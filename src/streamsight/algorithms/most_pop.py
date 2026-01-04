@@ -1,10 +1,13 @@
-from warnings import warn
+import logging
 
 import numpy as np
+import pandas as pd
 from scipy.sparse import csr_matrix, lil_matrix
 
-from streamsight.algorithms import Algorithm
-from streamsight.matrix.interaction_matrix import InteractionMatrix
+from .base import Algorithm
+
+
+logger = logging.getLogger(__name__)
 
 
 class MostPop(Algorithm):
@@ -70,7 +73,7 @@ class MostPop(Algorithm):
         # Initialize decayed scores
         num_items = X.shape[1]
         if num_items < self.K:
-            warn("K is larger than the number of items.", UserWarning)
+            logger.warning("K is larger than the number of items.", UserWarning)
 
         interaction_counts = np.zeros(num_items)
 
@@ -86,26 +89,21 @@ class MostPop(Algorithm):
         self.sorted_scores_ = a
         return self
 
-    def _predict(self, X: csr_matrix, predict_im: InteractionMatrix) -> csr_matrix:
+    def _predict(self, X: csr_matrix, predict_ui_df: pd.DataFrame | None = None) -> csr_matrix:
         """
         Predict the K most popular item for each user.
-
         """
-        if predict_im is None:
-            raise AttributeError(
-                "Predict frame with requested ID is required for Popularity algorithm"
-            )
+        if predict_ui_df is None:
+            raise AttributeError(f"Predict frame with requested ID is required for {self.name} algorithm")
 
-        predict_frame = predict_im._df
-
-        users = predict_frame["uid"].unique().tolist()
+        users = predict_ui_df["uid"].unique().tolist()
         known_item_id = X.shape[1]
 
-        # predict_frame contains (user_id, -1) pairs
-        max_user_id = predict_frame["uid"].max() + 1
+        # predict_ui_df contains (user_id, -1) pairs
+        max_user_id = predict_ui_df["uid"].max() + 1
         intended_shape = (max(max_user_id, X.shape[0]), known_item_id)
 
         X_pred = lil_matrix(intended_shape)
         X_pred[users] = self.sorted_scores_
 
-        return X_pred.tocsr()
+        return csr_matrix(X_pred.tocsr())

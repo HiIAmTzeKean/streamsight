@@ -210,7 +210,9 @@ class EvaluatorPipeline(EvaluatorBase):
             return
         logger.info("Phase 3: Releasing the data...")
 
-        incremental_data = self.setting.get_split_at(self._run_step)['incremental']
+        incremental_data = self.setting.get_split_at(self._run_step).incremental
+        if incremental_data is None:
+            raise ValueError("Incremental data is None in sliding window setting")
         self.user_item_base.reset_unknown_user_item_base()
         self.user_item_base.update_known_user_item_base(incremental_data)
         incremental_data.mask_shape(self.user_item_base.known_shape)

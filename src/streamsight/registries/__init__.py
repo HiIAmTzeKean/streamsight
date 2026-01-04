@@ -38,42 +38,30 @@ and parameters used to instantiate each component. These entries are used by
 - `AlgorithmEntry`: Entry for algorithms
 - `MetricEntry`: Entry for metrics
 
-## Status Registry
-
-Status registry maintains algorithm status during the streaming process. It
-tracks the state of algorithms and keeps state counts for monitoring.
-
-### Status Components
-
-- `AlgorithmStateEnum`: Enum for algorithm states
-- `AlgorithmStatusEntry`: Entry for algorithm status
-- `AlgorithmStatusRegistry`: Registry for algorithm status
 """
 
 from .algorithm import (
     ALGORITHM_REGISTRY,
     AlgorithmEntry,
     AlgorithmRegistry,
-    AlgorithmStateEnum,
-    AlgorithmStatusEntry,
-    AlgorithmStatusRegistry,
 )
 from .base import Registry
 from .dataset import DATASET_REGISTRY, DatasetRegistry
-from .metric import METRIC_REGISTRY, MetricEntry, MetricRegistry
+from .metric import (
+    METRIC_REGISTRY,
+    MetricEntry,
+    MetricRegistry,
+)
 
 
 __all__ = [
     "ALGORITHM_REGISTRY",
-    "DATASET_REGISTRY",
-    "METRIC_REGISTRY",
-    "AlgorithmRegistry",
-    "DatasetRegistry",
-    "MetricRegistry",
     "AlgorithmEntry",
+    "AlgorithmRegistry",
+    "DATASET_REGISTRY",
+    "DatasetRegistry",
+    "METRIC_REGISTRY",
     "MetricEntry",
-    "AlgorithmStateEnum",
-    "AlgorithmStatusEntry",
-    "AlgorithmStatusRegistry",
+    "MetricRegistry",
     "Registry",
 ]

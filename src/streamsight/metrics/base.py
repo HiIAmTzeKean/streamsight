@@ -91,9 +91,7 @@ class Metric(BaseModel, ParamMixin):
     @property
     def macro_result(self) -> float:
         """The global metric value."""
-        if not hasattr(self, "_score"):
-            raise ValueError("Metric has not been calculated yet.")
-        return self._score
+        raise NotImplementedError()
 
     @property
     def timestamp_limit(self) -> int:

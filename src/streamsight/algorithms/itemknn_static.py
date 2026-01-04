@@ -1,12 +1,9 @@
 import logging
-from typing import Optional
+from typing import Self
 
-import pandas as pd
-from scipy.sparse import csr_matrix
-
-from streamsight.algorithms.base import Algorithm
-from streamsight.algorithms.itemknn import ItemKNN
 from streamsight.matrix import InteractionMatrix
+from .base import Algorithm
+from .itemknn import ItemKNN
 
 
 logger = logging.getLogger(__name__)
@@ -23,18 +20,13 @@ class ItemKNNStatic(ItemKNN):
     IS_BASE: bool = False
 
     def __init__(self, K: int = 10) -> None:
+        self._is_fitted = False
         super().__init__(K)
-        self.fit_complete = False
 
-    def fit(self, X: InteractionMatrix) -> "Algorithm":
-        if self.fit_complete:
+    def fit(self, X: InteractionMatrix) -> Self:
+        if self._is_fitted:
             return self
 
         super().fit(X)
+        self._is_fitted = True
         return self
-
-    def _predict(self, X: csr_matrix, predict_frame: Optional[pd.DataFrame] = None) -> csr_matrix:
-        num_item, _ = self.similarity_matrix_.shape
-        # reduce X to only the items that are in the similarity matrix
-        X = X[:, :num_item]
-        return super()._predict(X)

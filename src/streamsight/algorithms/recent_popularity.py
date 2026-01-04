@@ -1,66 +1,37 @@
-from warnings import warn
 
-import numpy as np
+import logging
+from typing import Self
+
 from scipy.sparse import csr_matrix, lil_matrix
 
-from streamsight.algorithms import Algorithm
-from streamsight.matrix.interaction_matrix import InteractionMatrix
+from ..matrix import PredictionMatrix
+from .base import PopularityPaddingMixin, TopKAlgorithm
 
 
-class RecentPopularity(Algorithm):
-    """A popularity-based algorithm which only considers popularity of the latest train data.
+logger = logging.getLogger(__name__)
 
-    :param K: Number of items to recommend, defaults to 200
-    :type K: int, optional
-    """
+
+class RecentPopularity(TopKAlgorithm, PopularityPaddingMixin):
+    """A popularity-based algorithm which only considers popularity of the latest train data."""
+
     IS_BASE: bool = False
 
-    def __init__(self, K: int = 200) -> None:
-        super().__init__()
-        self.K = K
-
-
-    def _fit(self, X: csr_matrix) -> "RecentPopularity":
-        """
-        Fit the model by applying decay to historical data and adding new data.
-
-        :param X: Interaction matrix (users x items) for the current window
-        :type X: csr_matrix
-        """
-        # Get popularity score for every item
-        interaction_counts = X.sum(axis=0).A[0]
-        sorted_scores = interaction_counts / interaction_counts.max()
-
-        num_items = X.shape[1]
-        if num_items < self.K:
-            warn("K is larger than the number of items.", UserWarning)
-
-        K = min(self.K, num_items)
-        ind = np.argpartition(sorted_scores, -K)[-K:]
-        a = np.zeros(X.shape[1])
-        a[ind] = sorted_scores[ind]
-        self.sorted_scores_ = a
+    def _fit(self, X: csr_matrix) -> Self:
+        self.sorted_scores_ = self.get_popularity_scores(X)
         return self
 
-    def _predict(self, X: csr_matrix, predict_im: InteractionMatrix) -> csr_matrix:
+    def _predict(self, X: PredictionMatrix) -> csr_matrix:
         """
-        Predict the K most popular item for each user using only train data from the latest window.
+        Predict the K most popular item for each user using only data from the latest window.
         """
-        if predict_im is None:
-            raise AttributeError("Predict frame with requested ID is required for Popularity algorithm")
-        
-        predict_frame = predict_im._df
+        predict_ui_df = X.get_prediction_data()._df  # noqa: SLF001
+        users = predict_ui_df["uid"].unique().tolist()
 
-        users = predict_frame["uid"].unique().tolist()
-        known_item_id = X.shape[1]
-        
-        # predict_frame contains (user_id, -1) pairs
-        max_user_id  = predict_frame["uid"].max() + 1 
-        intended_shape = (max(max_user_id, X.shape[0]), known_item_id)
+        # predict_ui_df contains (user_id, -1) pairs
+        max_user_id = predict_ui_df["uid"].max() + 1
+        intended_shape = (max(max_user_id, X.shape[0]), X.shape[1])
 
         X_pred = lil_matrix(intended_shape)
         X_pred[users] = self.sorted_scores_
 
-        return X_pred.tocsr()
-
-    
+        return csr_matrix(X_pred.tocsr())
