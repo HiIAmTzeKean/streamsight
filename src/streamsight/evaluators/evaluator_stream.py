@@ -183,7 +183,7 @@ class EvaluatorStreamer(EvaluatorBase):
         training_data = PredictionMatrix.from_interaction_matrix(training_data)
 
         self.user_item_base.update_known_user_item_base(training_data)
-        training_data.mask_shape(self.user_item_base.known_shape)
+        training_data.mask_user_item_shape(self.user_item_base.known_shape)
         self._training_data_cache = training_data
         self._cache_evaluation_data()
         self._algo_state_mgr.set_all_ready(data_segment=self._current_timestamp)
@@ -250,7 +250,7 @@ class EvaluatorStreamer(EvaluatorBase):
         incremental_data = PredictionMatrix.from_interaction_matrix(incremental_data)
 
         self.user_item_base.update_known_user_item_base(incremental_data)
-        incremental_data.mask_shape(self.user_item_base.known_shape)
+        incremental_data.mask_user_item_shape(self.user_item_base.known_shape)
         self._training_data_cache = incremental_data
         self._cache_evaluation_data()
         self._algo_state_mgr.set_all_ready(data_segment=self._current_timestamp)

@@ -29,7 +29,7 @@ class PredictionMatrix(InteractionMatrix):
             skip_df_processing=True,
         )
 
-    def mask_shape(
+    def mask_user_item_shape(
         self,
         shape: None | tuple[int, int] = None,
         drop_unknown_user: bool = False,
@@ -124,9 +124,9 @@ class PredictionMatrix(InteractionMatrix):
         else:
             self.user_item_shape = shape
         logger.debug(f"Final (user x item) shape defined is {self.user_item_shape}")
-        self._check_shape()
+        self._check_user_item_shape()
 
-    def _check_shape(self) -> None:
+    def _check_user_item_shape(self) -> None:
         if not hasattr(self, "user_item_shape"):
             raise AttributeError("InteractionMatrix has no `user_item_shape` attribute. Please call mask_shape() first.")
         if self.user_item_shape[0] is None or self.user_item_shape[1] is None:
