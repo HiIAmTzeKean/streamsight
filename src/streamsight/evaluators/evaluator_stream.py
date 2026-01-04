@@ -1,9 +1,7 @@
-import datetime
 import logging
-import warnings
-from typing import Dict, List, Optional, Union, cast
-from uuid import NAMESPACE_DNS, UUID, uuid5
-from warnings import warn
+from enum import Enum
+from typing import Optional, Union, cast
+from uuid import UUID
 
 from scipy.sparse import csr_matrix
 
@@ -12,20 +10,27 @@ from streamsight.matrix import InteractionMatrix, PredictionMatrix
 from streamsight.metrics import Metric
 from streamsight.registries import (
     METRIC_REGISTRY,
-    AlgorithmStateEnum,
-    AlgorithmStatusEntry,
-    AlgorithmStatusRegistry,
     MetricEntry,
 )
 from streamsight.settings import EOWSettingError, Setting
 from .accumulator import MetricAccumulator
 from .base import EvaluatorBase
-from .warning import AlgorithmStatusWarning
+from .state_management import AlgorithmStateManager
+from .strategy import EvaluationStrategy, SlidingWindowStrategy
+from .warning import AlgorithmStateEnum, AlgorithmStatusWarning
+
+
+class EvaluatorState(Enum):
+    """Evaluator lifecycle states"""
+
+    INITIALIZED = "initialized"
+    STARTED = "started"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    FAILED = "failed"
 
 
 logger = logging.getLogger(__name__)
-
-warnings.simplefilter("always", AlgorithmStatusWarning)
 
 
 class EvaluatorStreamer(EvaluatorBase):
@@ -55,7 +60,7 @@ class EvaluatorStreamer(EvaluatorBase):
     the necessary data to the algorithm and evaluate the prediction.
 
     Args:
-        metric_entries: List of metric entries.
+        metric_entries: list of metric entries.
         setting: Setting object.
         metric_k: Number of top interactions to consider.
         ignore_unknown_user: To ignore unknown users.
@@ -65,12 +70,13 @@ class EvaluatorStreamer(EvaluatorBase):
 
     def __init__(
         self,
-        metric_entries: List[MetricEntry],
+        metric_entries: list[MetricEntry],
         setting: Setting,
         metric_k: int,
         ignore_unknown_user: bool = True,
         ignore_unknown_item: bool = True,
         seed: int = 42,
+        strategy: Optional[EvaluationStrategy] = None,
     ) -> None:
         super().__init__(
             metric_entries,
@@ -80,34 +86,94 @@ class EvaluatorStreamer(EvaluatorBase):
             ignore_unknown_item,
             seed,
         )
-        self.status_registry = AlgorithmStatusRegistry()
+        self._algo_state_mgr = AlgorithmStateManager()
         self._unlabeled_data_cache: PredictionMatrix
         self._ground_truth_data_cache: PredictionMatrix
         self._training_data_cache: PredictionMatrix
 
-        self.has_started: bool = False
-        self.has_predicted: bool = False
+        # Evaluator state management
+        self._state = EvaluatorState.INITIALIZED
+
+        # Evaluation strategy
+        self._strategy = strategy or SlidingWindowStrategy()
+
+    @property
+    def state(self) -> EvaluatorState:
+        return self._state
+
+    def _assert_state(
+        self,
+        expected: EvaluatorState,
+        error_msg: str
+    ) -> None:
+        """Assert evaluator is in expected state"""
+        if self._state != expected:
+            raise RuntimeError(
+                f"{error_msg} (Current state: {self._state.value})"
+            )
+
+    def _transition_state(
+        self,
+        new_state: EvaluatorState,
+        allow_from: list[EvaluatorState]
+    ) -> None:
+        """Guard state transitions explicitly"""
+        if self._state not in allow_from:
+            raise ValueError(
+                f"Cannot transition from {self._state} to {new_state}. "
+                f"Allowed from: {allow_from}"
+            )
+        self._state = new_state
+        logger.info(f"Evaluator transitioned to {new_state}")
+
+    def _cache_evaluation_data(self) -> None:
+        """Cache the evaluation data for the current step.
+
+        Summary
+        -------
+        This method will cache the evaluation data for the current step. The method
+        will update the unknown user/item base, get the next unlabeled and ground
+        truth data, and update the current timestamp.
+
+        Specifics
+        ---------
+        The method will update the unknown user/item base with the ground truth data.
+        Next, mask the unlabeled and ground truth data with the known user/item
+        base. The method will cache the unlabeled and ground truth data in the internal
+        attributes :attr:`_unlabeled_data_cache` and :attr:`_ground_truth_data_cache`.
+        The timestamp is cached in the internal attribute :attr:`_current_timestamp`.
+
+        We use an internal attribute :attr:`_run_step` to keep track of the current
+        step such that we can check if we have reached the last step.
+
+        We assume that any method calling this method has already checked if the
+        there is still data to be processed.
+        """
+
+        logger.debug(f"Caching evaluation data for step {self._run_step}")
+        try:
+            self._unlabeled_data_cache, self._ground_truth_data_cache, _ = self._get_evaluation_data()
+        except EOWSettingError as e:
+            raise e
+        logger.debug(f"Data cached for step {self._run_step} complete")
 
     def start_stream(self) -> None:
         """Start the streaming process.
 
-        This method is called to start the streaming process. The method will
-        prepare the evaluator for the streaming process. The method will reset
-        the data generators, prepare the micro and macro accumulators, update
-        the known user/item base, and cache the evaluation data.
+        This method is called to start the streaming process. `start_stream` will
+        prepare the evaluator for the streaming process. `start_stream` will reset
+        data streamers, prepare the micro and macro accumulators, update
+        the known user/item base, and cache data.
 
-        The method will set the internal state :attr:`has_started` to True. The
-        method can be called anytime after the evaluator is instantiated. However,
-        once the method is called, the evaluator cannot register any new algorithms.
+        The method will set the internal state to be be started. The
+        method can be called anytime after the evaluator is instantiated.
+
+        Warning:
+            Once `start_stream` is called, the evaluator cannot register any new algorithms.
 
         Raises:
             ValueError: If the stream has already started.
         """
-        # TODO: allow programmer to register anytime
-        if self.has_started:
-            raise ValueError("Cannot start the stream again")
-
-        self.has_started = True
         self.setting.restore()
 
         logger.debug("Preparing evaluator for streaming")
@@ -118,12 +184,18 @@ class EvaluatorStreamer(EvaluatorBase):
         training_data = cast(PredictionMatrix, training_data)
         self._training_data_cache = training_data
         self._cache_evaluation_data()
+        self._algo_state_mgr.set_all_ready(data_segment=self._current_timestamp)
         logger.debug("Evaluator is ready for streaming")
+        # TODO: allow programmer to register anytime
+        self._transition_state(
+            EvaluatorState.STARTED,
+            allow_from=[EvaluatorState.INITIALIZED]
+        )
 
     def register_algorithm(
         self,
-        algorithm: Optional[Algorithm] = None,
-        algorithm_name: Optional[str] = None,
+        algorithm: None | Algorithm = None,
+        algorithm_name: None | str = None,
     ) -> UUID:
         """Register the algorithm with the evaluator.
 
@@ -131,48 +203,12 @@ class EvaluatorStreamer(EvaluatorBase):
         The method will assign a unique identifier to the algorithm and store
         the algorithm in the registry. The method will raise a ValueError if
         the stream has already started.
-
-        Args:
-            algorithm: The algorithm to be registered.
-            algorithm_name: The name of the algorithm.
-
-        Returns:
-            The unique identifier of the algorithm.
-
-        Raises:
-            ValueError: If the stream has already started.
-            ValueError: If neither algorithm nor algorithm_name is provided.
         """
-        if self.has_started:
-            raise ValueError("Cannot register algorithm after the stream has started")
-
-        if algorithm is None and algorithm_name is None:
-            raise ValueError("Either 'algorithm' or 'algorithm_name' must be provided")
-
-        if algorithm and hasattr(algorithm, "identifier"):
-            name = algorithm.identifier
-            algo_ptr = algorithm
-        else:
-            name = algorithm_name
-            algo_ptr = None
-
-        if name is None:
-            raise ValueError(
-                "No valid name provided for the algorithm, either the algorithm"
-                " must implement an identifier property or a name must be provided"
-            )
-
-        # assign a unique identifier to the algorithm
-        algo_id = uuid5(NAMESPACE_DNS, f"{name}_{datetime.datetime.now()}")
-
-        logger.info(f"Registering algorithm name {algorithm_name} with ID: {algo_id}")
-
-        # store the algorithm in the registry
-        self.status_registry[algo_id] = AlgorithmStatusEntry(
-            name=name,
-            algo_id=algo_id,
-            algo_ptr=algo_ptr,
+        self._assert_state(
+            EvaluatorState.INITIALIZED,
+            "Cannot register algorithms after stream started"
         )
+        algo_id = self._algo_state_mgr.register(algorithm_name, algorithm)
         logger.debug(f"Algorithm {algo_id} registered")
         return algo_id
 
@@ -189,9 +225,9 @@ class EvaluatorStreamer(EvaluatorBase):
         Returns:
             The state of the algorithm.
         """
-        return self.status_registry[algo_id].state
+        return self._algo_state_mgr[algo_id].state
 
-    def get_all_algorithm_status(self) -> Dict[str, AlgorithmStateEnum]:
+    def get_all_algorithm_status(self) -> dict[str, AlgorithmStateEnum]:
         """Get the status of all algorithms.
 
         This method is called to get the status of all algorithms registered
@@ -201,7 +237,19 @@ class EvaluatorStreamer(EvaluatorBase):
         Returns:
             The status of all algorithms.
         """
-        return self.status_registry.all_algo_states()
+        return self._algo_state_mgr.all_algo_states()
+
+    def load_next_window(self) -> None:
+        self.user_item_base.reset_unknown_user_item_base()
+        incremental_data = self.setting.get_split_at(self._run_step).incremental
+        if incremental_data is None:
+            raise EOWSettingError("No more data to stream")
+        self.user_item_base.update_known_user_item_base(incremental_data)
+        incremental_data.mask_shape(self.user_item_base.known_shape)
+        incremental_data = cast(PredictionMatrix, incremental_data)
+        self._training_data_cache = incremental_data
+        self._cache_evaluation_data()
+        self._algo_state_mgr.set_all_ready(data_segment=self._current_timestamp)
 
     def get_training_data(self, algo_id: UUID) -> InteractionMatrix:
         """Get training data for the algorithm.
@@ -238,103 +286,54 @@ class EvaluatorStreamer(EvaluatorBase):
         Returns:
             The training data for the algorithm.
         """
-        if not self.has_started:
-            raise ValueError(f"call start_stream() before requesting data for algorithm {algo_id}")
+        self._assert_state(EvaluatorState.STARTED, "Call start_stream() first")
 
         logger.debug(f"Getting data for algorithm {algo_id}")
 
-        # check if we need to move to the next window
-        if (
-            self.setting.is_sliding_window_setting
-            and self.status_registry.is_all_predicted()
-            and self.status_registry.is_all_same_data_segment()
+        if self._strategy.should_advance_window(
+            algo_state_mgr=self._algo_state_mgr,
+            current_step=self._run_step,
+            total_steps=self.setting.num_split,
         ):
-            self.user_item_base.reset_unknown_user_item_base()
-            incremental_data = self.setting.get_split_at(self._run_step).incremental
-            if incremental_data is None:
-                raise EOWSettingError("No more data to stream")
-            self.user_item_base.update_known_user_item_base(incremental_data)
-            incremental_data.mask_shape(self.user_item_base.known_shape)
-            incremental_data = cast(PredictionMatrix, incremental_data)
-            self._training_data_cache = incremental_data
+            try:
+                self.load_next_window()
+            except EOWSettingError:
+                self._transition_state(
+                    EvaluatorState.COMPLETED,
+                    allow_from=[EvaluatorState.STARTED, EvaluatorState.IN_PROGRESS]
+                )
+                raise RuntimeError("End of evaluation window reached")
 
-            self._cache_evaluation_data()
+        can_request, reason = self._algo_state_mgr.can_request_training_data(algo_id)
+        if not can_request:
+            raise PermissionError(f"Cannot request data: {reason}")
+        # TODO handle case when algo is ready after submitting prediction, but current timestamp has not changed, meaning algo is requesting same data again
+        self._algo_state_mgr.transition(
+            algo_id,
+            AlgorithmStateEnum.RUNNING,
+            data_segment=self._current_timestamp,
+        )
 
-        # check status of of algo
-        status = self.status_registry[algo_id].state
-
-        if status == AlgorithmStateEnum.COMPLETED:
-            warn(AlgorithmStatusWarning(algo_id, status, "complete"))
-
-        elif status == AlgorithmStateEnum.NEW:
-            self.status_registry.update(algo_id, AlgorithmStateEnum.READY, self._current_timestamp)
-
-        elif (
-            status == AlgorithmStateEnum.READY
-            and self.status_registry[algo_id].data_segment == self._current_timestamp
-        ):
-            warn(AlgorithmStatusWarning(algo_id, status, "data_release"))
-
-        elif (
-            status == AlgorithmStateEnum.PREDICTED
-            and self.status_registry[algo_id].data_segment == self._current_timestamp
-        ):
-            # if algo has predicted, check if current timestamp has not changed
-            return_msg = f"Algorithm {algo_id} has already predicted for this data segment, please wait for all other algorithms to predict"
-            warn(AlgorithmStatusWarning(algo_id, status, "not_all_predicted"))
-            logger.info(return_msg)
-            print(return_msg)
-
-        else:
-            # ? any other scenario that we have not accounted for
-            self.status_registry.update(algo_id, AlgorithmStateEnum.READY, self._current_timestamp)
-
+        self._evaluator_state = EvaluatorState.IN_PROGRESS
         # release data to the algorithm
         return self._training_data_cache
 
     def get_unlabeled_data(self, algo_id: UUID) -> PredictionMatrix:
         """Get unlabeled data for the algorithm.
 
-        Summary
-        -------
-
         This method is called to get the unlabeled data for the algorithm. The
         unlabeled data is the data that the algorithm will predict. It will
         contain `(user_id, -1)` pairs, where the value -1 indicates that the
         item is to be predicted.
-
-        Specifics
-        ---------
-
-        1. If the state is READY/PREDICTED, return the unlabeled data
-        2. If the state is COMPLETED, raise warning that the algorithm has completed
-        3. All other same, raise warning that the algorithm has not obtained data
-           and should call :meth:`get_training_data` first.
-
-        Args:
-            algo_id: Unique identifier of the algorithm.
-
-        Returns:
-            The unlabeled data for prediction.
         """
         logger.debug(f"Getting unlabeled data for algorithm {algo_id}")
-        status = self.status_registry[algo_id].state
-        if status in [AlgorithmStateEnum.READY, AlgorithmStateEnum.PREDICTED]:
-            return self._unlabeled_data_cache
-        elif status == AlgorithmStateEnum.COMPLETED:
-            warning_msg = AlgorithmStatusWarning(algo_id, status, "complete")
-        else:
-            warning_msg = AlgorithmStatusWarning(algo_id, status, "unlabeled")
-        logger.warning(warning_msg)
-        raise ConnectionError(warning_msg)
+        can_submit, reason = self._algo_state_mgr.can_request_unlabeled_data(algo_id)
+        if not can_submit:
+            raise PermissionError(f"Cannot get unlabeled data: {reason}")
+        return self._unlabeled_data_cache
 
-    def submit_prediction(
-        self, algo_id: UUID, X_pred: Union[csr_matrix, InteractionMatrix]
-    ) -> None:
+    def submit_prediction(self, algo_id: UUID, X_pred: csr_matrix | InteractionMatrix) -> None:
         """Submit the prediction of the algorithm.
-
-        Summary
-        -------
 
         This method is called to submit the prediction of the algorithm.
         There are a few checks that are done before the prediction is
@@ -342,55 +341,20 @@ class EvaluatorStreamer(EvaluatorBase):
 
         Once the prediction is evaluated, the method will update the state
         of the algorithm to PREDICTED.
-
-        The method will also check for each call if the current step of evaluation
-        is the final one, if it is the final step, the method will update the
-        state of the algorithm to COMPLETED.
-
-        Specifics
-        ---------
-
-        1. If state is READY, evaluate the prediction
-        2. If state is NEW, algorithm has not obtained data, raise warning
-        3. If state is PREDICTED, algorithm has already predicted, raise warning
-        4. All other state, raise warning that the algorithm has completed
-
-        Args:
-            algo_id: The unique identifier of the algorithm.
-            X_pred: The prediction of the algorithm.
-
-        Raises:
-            ValueError: If X_pred is not an InteractionMatrix or csr_matrix.
         """
         logger.debug(f"Submitting prediction for algorithm {algo_id}")
-        status = self.status_registry[algo_id].state
+        can_submit, reason = self._algo_state_mgr.can_submit_prediction(algo_id)
+        if not can_submit:
+            raise PermissionError(f"Cannot submit prediction: {reason}")
 
-        if status == AlgorithmStateEnum.READY:
-            try:
-                X_pred = self._transform_prediction(X_pred)
-            except ValueError as e:
-                warn(f"Prediction failed for algorithm {algo_id} due to {e}")
-                return
-            # TODO check if all requested prediction made #86 bug
-            self._evaluate_algo_pred(algo_id=algo_id, X_pred=X_pred)
-            self.has_predicted = True
-            self.status_registry.update(algo_id, AlgorithmStateEnum.PREDICTED)
+        X_pred = self._transform_to_csr(X_pred)
+        self._evaluate_algo_pred(algo_id=algo_id, X_pred=X_pred)
+        self._algo_state_mgr.transition(
+            algo_id,
+            AlgorithmStateEnum.PREDICTED,
+        )
 
-        elif status == AlgorithmStateEnum.NEW:
-            warn(AlgorithmStatusWarning(algo_id, status, "predict"))
-
-        elif status == AlgorithmStateEnum.PREDICTED:
-            warn(AlgorithmStatusWarning(algo_id, status, "predict_complete"))
-
-        else:
-            warn(AlgorithmStatusWarning(algo_id, status, "complete"))
-
-        if self._run_step == self.setting.num_split:
-            self.status_registry.update(algo_id, AlgorithmStateEnum.COMPLETED)
-            logger.info("Finished streaming")
-            warn(AlgorithmStatusWarning(algo_id, status, "complete"))
-
-    def _transform_prediction(self, X_pred: Union[csr_matrix, InteractionMatrix]) -> csr_matrix:
+    def _transform_to_csr(self, X_pred: csr_matrix | InteractionMatrix) -> csr_matrix:
         """Transform the prediction matrix.
 
         This method is called to transform the prediction matrix to a csr_matrix.
@@ -408,7 +372,9 @@ class EvaluatorStreamer(EvaluatorBase):
         Returns:
             The prediction matrix as a csr_matrix.
         """
-        if isinstance(X_pred, InteractionMatrix):
+        if isinstance(X_pred, csr_matrix):
+            return X_pred
+        elif isinstance(X_pred, InteractionMatrix):
             # check if shape is defined
             if not hasattr(X_pred, "shape"):
                 # prediction may be done on unknown users as well
@@ -416,47 +382,15 @@ class EvaluatorStreamer(EvaluatorBase):
                 X_pred.mask_shape(self.user_item_base.global_shape)
             # if there still exists ID outside the global shape, then the algorithm
             # is giving us ID that is not known to us, raise exception
-            if X_pred.user_ids.difference(
-                self.user_item_base.global_user_ids
-            ) or X_pred.item_ids.difference(self.user_item_base.global_item_ids):
+            if (
+                X_pred.user_ids.difference(self.user_item_base.global_user_ids)
+                or X_pred.item_ids.difference(self.user_item_base.global_item_ids)
+            ):
                 raise ValueError("Prediction matrix contains unknown user/item ids")
             X_pred = X_pred.binary_values
-        elif isinstance(X_pred, csr_matrix):
-            pass
         else:
             raise ValueError("X_pred must be either InteractionMatrix or csr_matrix")
         return X_pred
-
-    def _cache_evaluation_data(self) -> None:
-        """Cache the evaluation data for the current step.
-
-        Summary
-        -------
-        This method will cache the evaluation data for the current step. The method
-        will update the unknown user/item base, get the next unlabeled and ground
-        truth data, and update the current timestamp.
-
-        Specifics
-        ---------
-        The method will update the unknown user/item base with the ground truth data.
-        Next, mask the unlabeled and ground truth data with the known user/item
-        base. The method will cache the unlabeled and ground truth data in the internal
-        attributes :attr:`_unlabeled_data_cache` and :attr:`_ground_truth_data_cache`.
-        The timestamp is cached in the internal attribute :attr:`_current_timestamp`.
-
-        We use an internal attribute :attr:`_run_step` to keep track of the current
-        step such that we can check if we have reached the last step.
-
-        We assume that any method calling this method has already checked if the
-        there is still data to be processed.
-        """
-
-        logger.debug(f"Caching evaluation data for step {self._run_step}")
-        try:
-            self._unlabeled_data_cache, self._ground_truth_data_cache, _ = self._get_evaluation_data()
-        except EOWSettingError as e:
-            raise e
-        logger.debug(f"Data cached for step {self._run_step} complete")
 
     def _evaluate_algo_pred(self, algo_id: UUID, X_pred: csr_matrix) -> None:
         """Evaluate the prediction for algorithm.
@@ -472,19 +406,18 @@ class EvaluatorStreamer(EvaluatorBase):
             algo_id: The unique identifier of the algorithm.
             X_pred: The prediction of the algorithm.
         """
+        # get top k ground truth interactions
         X_true = self._ground_truth_data_cache.get_users_n_first_interaction(self.metric_k)
         X_true = X_true.binary_values
 
         X_pred = self._prediction_shape_handler(X_true.shape, X_pred)
-        algorithm_name = self.status_registry.get_algorithm_identifier(algo_id)
+        algorithm_name = self._algo_state_mgr.get_algorithm_identifier(algo_id)
 
         # evaluate the prediction
         for metric_entry in self.metric_entries:
             metric_cls = METRIC_REGISTRY.get(metric_entry.name)
             if metric_entry.K is not None:
-                metric: Metric = metric_cls(
-                    K=metric_entry.K, timestamp_limit=self._current_timestamp
-                )
+                metric: Metric = metric_cls(K=metric_entry.K, timestamp_limit=self._current_timestamp)
             else:
                 metric: Metric = metric_cls(timestamp_limit=self._current_timestamp)
             metric.calculate(X_true, X_pred)

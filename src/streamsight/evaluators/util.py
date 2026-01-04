@@ -4,7 +4,7 @@ from enum import StrEnum
 from uuid import UUID
 
 from streamsight.matrix import InteractionMatrix
-from streamsight.registries import AlgorithmStateEnum
+from .state_management import AlgorithmStateEnum
 
 
 logger = logging.getLogger(__name__)

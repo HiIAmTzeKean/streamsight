@@ -4,7 +4,7 @@ from typing import Literal, Optional, Union, cast
 import pandas as pd
 from scipy.sparse import csr_matrix
 
-from streamsight.matrix import InteractionMatrix, PredictionMatrix
+from streamsight.matrix import PredictionMatrix
 from streamsight.registries import MetricEntry
 from streamsight.settings import EOWSettingError, Setting
 from .accumulator import MetricAccumulator
@@ -74,6 +74,8 @@ class EvaluatorBase(object):
             split = self.setting.get_split_at(self._run_step)
             unlabeled_data = split.unlabeled
             ground_truth_data = split.ground_truth
+            if split.t_window is None:
+                raise ValueError("Timestamp of the current split cannot be None")
             self._current_timestamp = split.t_window
             self._run_step += 1
         except EOWSettingError:

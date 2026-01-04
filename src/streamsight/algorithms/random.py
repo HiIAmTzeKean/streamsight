@@ -21,7 +21,7 @@ class Random(TopKAlgorithm):
     """
     IS_BASE: bool = False
 
-    def _fit(self, X: csr_matrix) -> Self:
+    def _fit(self, X: csr_matrix) -> Self:  # noqa: ARG002
         self.fit_complete_ = True
         return self
 

@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from streamsight.registries import AlgorithmStateEnum
+from .state_management import AlgorithmStateEnum
 
 
 class AlgorithmStatusWarning(UserWarning):

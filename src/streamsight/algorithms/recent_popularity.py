@@ -24,7 +24,7 @@ class RecentPopularity(TopKAlgorithm, PopularityPaddingMixin):
         """
         Predict the K most popular item for each user using only data from the latest window.
         """
-        predict_ui_df = X.get_prediction_data()._df
+        predict_ui_df = X.get_prediction_data()._df  # noqa: SLF001
         users = predict_ui_df["uid"].unique().tolist()
 
         # predict_ui_df contains (user_id, -1) pairs
