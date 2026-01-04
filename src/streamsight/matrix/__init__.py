@@ -1,29 +1,36 @@
 """
-.. currentmodule:: streamsight.matrix
+streamsight.matrix
 
-Interaction Matrix
--------------------
-The InteractionMatrix class is used to create an interaction matrix from the
-dataset loaded. The interaction matrix stores a dataframe under the hood and
-provides functionality to convert the dataframe to a CSR matrix and other
-operations which are useful for building recommendation systems.
+This module provides classes and utilities for handling interaction matrices in recommendation systems.
 
-.. autosummary::
-    :toctree: generated/
+The core component is the InteractionMatrix, which represents user-item interactions as a structured matrix.
+It stores interaction data in a pandas DataFrame and offers methods for filtering, masking, and converting to sparse matrices.
+This is essential for building and evaluating recommender algorithms, such as collaborative filtering, where interactions
+between users and items need to be efficiently processed.
 
-    InteractionMatrix
+Use cases include:
+- Preprocessing interaction data for training recommendation models.
+- Handling temporal data with timestamp-based filtering (e.g., recent interactions).
+- Masking unknown users/items during evaluation to prevent data leakage.
+- Converting data to CSR format for efficient matrix operations in libraries like SciPy.
 
-Utils
------
-Below are some of the utility classes and functions that are used in the matrix module.
-These provides functionality for the matrix module and for use cases in other modules.
+Classes:
+    InteractionMatrix: The main class for creating and manipulating interaction matrices from datasets.
+        It supports operations like filtering by users/items, timestamps, and shape masking.
+    PredictionMatrix: A subclass of InteractionMatrix tailored for prediction-related operations.
+        It provides masking for the expected (user, item) exposed.
 
-.. autosummary::
-    :toctree: generated/
+Enums:
+    ItemUserBasedEnum: Enum for specifying whether operations are item-based or user-based.
+        Used in methods that group or filter data by users or items.
 
-    to_csr_matrix
-    ItemUserBasedEnum
-    TimestampAttributeMissingError
+Exceptions:
+    TimestampAttributeMissingError: Raised when required timestamp attributes are missing from the data.
+        Ensures that time-aware operations are only performed on timestamped data.
+
+Functions:
+    to_csr_matrix: Utility function to convert data structures to CSR matrix format.
+        Useful for creating sparse representations of interaction data for computational efficiency.
 """
 
 from .exception import TimestampAttributeMissingError
