@@ -29,7 +29,7 @@ class RecentPopularity(TopKAlgorithm, PopularityPaddingMixin):
 
         # predict_ui_df contains (user_id, -1) pairs
         max_user_id = predict_ui_df["uid"].max() + 1
-        intended_shape = (max(max_user_id, X.shape[0]), X.shape[1])
+        intended_shape = (max(max_user_id, X.user_item_shape[0]), X.user_item_shape[1])
 
         X_pred = lil_matrix(intended_shape)
         X_pred[users] = self.sorted_scores_

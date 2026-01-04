@@ -87,8 +87,8 @@ class EvaluatorBase(object):
         self.user_item_base.update_unknown_user_item_base(ground_truth_data)
 
         mask_shape = (self.user_item_base.known_shape[0], self.user_item_base.known_shape[1])
-        unlabeled_data.mask_shape(mask_shape)
-        ground_truth_data.mask_shape(
+        unlabeled_data.mask_user_item_shape(mask_shape)
+        ground_truth_data.mask_user_item_shape(
             mask_shape,
             drop_unknown_item=self.ignore_unknown_item,
             inherit_max_id=True,  # Ensures that shape of ground truth contains all user id that appears globally

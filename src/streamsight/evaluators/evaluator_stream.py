@@ -183,7 +183,7 @@ class EvaluatorStreamer(EvaluatorBase):
         training_data = PredictionMatrix.from_interaction_matrix(training_data)
 
         self.user_item_base.update_known_user_item_base(training_data)
-        training_data.mask_shape(self.user_item_base.known_shape)
+        training_data.mask_user_item_shape(self.user_item_base.known_shape)
         self._training_data_cache = training_data
         self._cache_evaluation_data()
         self._algo_state_mgr.set_all_ready(data_segment=self._current_timestamp)
@@ -250,7 +250,7 @@ class EvaluatorStreamer(EvaluatorBase):
         incremental_data = PredictionMatrix.from_interaction_matrix(incremental_data)
 
         self.user_item_base.update_known_user_item_base(incremental_data)
-        incremental_data.mask_shape(self.user_item_base.known_shape)
+        incremental_data.mask_user_item_shape(self.user_item_base.known_shape)
         self._training_data_cache = incremental_data
         self._cache_evaluation_data()
         self._algo_state_mgr.set_all_ready(data_segment=self._current_timestamp)
@@ -336,7 +336,7 @@ class EvaluatorStreamer(EvaluatorBase):
             raise PermissionError(f"Cannot get unlabeled data: {reason}")
         return self._unlabeled_data_cache
 
-    def submit_prediction(self, algo_id: UUID, X_pred: csr_matrix | InteractionMatrix) -> None:
+    def submit_prediction(self, algo_id: UUID, X_pred: csr_matrix) -> None:
         """Submit the prediction of the algorithm.
 
         This method is called to submit the prediction of the algorithm.
@@ -351,50 +351,11 @@ class EvaluatorStreamer(EvaluatorBase):
         if not can_submit:
             raise PermissionError(f"Cannot submit prediction: {reason}")
 
-        X_pred = self._transform_to_csr(X_pred)
         self._evaluate_algo_pred(algo_id=algo_id, X_pred=X_pred)
         self._algo_state_mgr.transition(
             algo_id,
             AlgorithmStateEnum.PREDICTED,
         )
-
-    def _transform_to_csr(self, X_pred: csr_matrix | InteractionMatrix) -> csr_matrix:
-        """Transform the prediction matrix.
-
-        This method is called to transform the prediction matrix to a csr_matrix.
-        The method will check if the prediction matrix is an InteractionMatrix
-        and if the shape attribute is defined. If the shape attribute is not
-        defined, the method will set the shape to the known shape of the user/item
-        base.
-
-        Args:
-            X_pred: The prediction matrix.
-
-        Raises:
-            ValueError: If X_pred is not an InteractionMatrix or csr_matrix.
-
-        Returns:
-            The prediction matrix as a csr_matrix.
-        """
-        if isinstance(X_pred, csr_matrix):
-            return X_pred
-        elif isinstance(X_pred, InteractionMatrix):
-            # check if shape is defined
-            if not hasattr(X_pred, "shape"):
-                # prediction may be done on unknown users as well
-                # we mask based on the larger shape
-                X_pred.mask_shape(self.user_item_base.global_shape)
-            # if there still exists ID outside the global shape, then the algorithm
-            # is giving us ID that is not known to us, raise exception
-            if (
-                X_pred.user_ids.difference(self.user_item_base.global_user_ids)
-                or X_pred.item_ids.difference(self.user_item_base.global_item_ids)
-            ):
-                raise ValueError("Prediction matrix contains unknown user/item ids")
-            X_pred = X_pred.binary_values
-        else:
-            raise ValueError("X_pred must be either InteractionMatrix or csr_matrix")
-        return X_pred
 
     def _evaluate_algo_pred(self, algo_id: UUID, X_pred: csr_matrix) -> None:
         """Evaluate the prediction for algorithm.
