@@ -179,9 +179,11 @@ class EvaluatorStreamer(EvaluatorBase):
         logger.debug("Preparing evaluator for streaming")
         self._acc = MetricAccumulator()
         training_data = self.setting.background_data
+        # Convert to PredictionMatrix since it's a subclass of InteractionMatrix
+        training_data = PredictionMatrix.from_interaction_matrix(training_data)
+
         self.user_item_base.update_known_user_item_base(training_data)
         training_data.mask_shape(self.user_item_base.known_shape)
-        training_data = cast(PredictionMatrix, training_data)
         self._training_data_cache = training_data
         self._cache_evaluation_data()
         self._algo_state_mgr.set_all_ready(data_segment=self._current_timestamp)
@@ -244,9 +246,11 @@ class EvaluatorStreamer(EvaluatorBase):
         incremental_data = self.setting.get_split_at(self._run_step).incremental
         if incremental_data is None:
             raise EOWSettingError("No more data to stream")
+        # Convert to PredictionMatrix since it's a subclass of InteractionMatrix
+        incremental_data = PredictionMatrix.from_interaction_matrix(incremental_data)
+
         self.user_item_base.update_known_user_item_base(incremental_data)
         incremental_data.mask_shape(self.user_item_base.known_shape)
-        incremental_data = cast(PredictionMatrix, incremental_data)
         self._training_data_cache = incremental_data
         self._cache_evaluation_data()
         self._algo_state_mgr.set_all_ready(data_segment=self._current_timestamp)

@@ -2,7 +2,7 @@ import logging
 from typing import Literal, Optional, Union, cast
 
 import pandas as pd
-from scipy.sparse import csr, csr_matrix
+from scipy.sparse import csr_matrix
 
 from streamsight.matrix import PredictionMatrix
 from streamsight.registries import MetricEntry
@@ -77,6 +77,9 @@ class EvaluatorBase(object):
             if split.t_window is None:
                 raise ValueError("Timestamp of the current split cannot be None")
             self._current_timestamp = split.t_window
+
+            unlabeled_data = PredictionMatrix.from_interaction_matrix(unlabeled_data)
+            ground_truth_data = PredictionMatrix.from_interaction_matrix(ground_truth_data)
             self._run_step += 1
         except EOWSettingError:
             raise EOWSettingError("There is no more data to be processed, EOW reached")
@@ -85,17 +88,15 @@ class EvaluatorBase(object):
 
         mask_shape = (self.user_item_base.known_shape[0], self.user_item_base.known_shape[1])
         unlabeled_data.mask_shape(mask_shape)
-        unlabeled_data = cast(PredictionMatrix, unlabeled_data)
         ground_truth_data.mask_shape(
             mask_shape,
             drop_unknown_item=self.ignore_unknown_item,
             inherit_max_id=True,  # Ensures that shape of ground truth contains all user id that appears globally
         )
-        ground_truth_data = cast(PredictionMatrix, ground_truth_data)
         return unlabeled_data, ground_truth_data, self._current_timestamp
 
     def _prediction_shape_handler(
-        self, X_true: csr_matrix, X_pred: csr_matrix
+        self, y_true: csr_matrix, y_pred: csr_matrix
     ) -> csr_matrix:
         """Handle shape difference of the prediction matrix.
 
@@ -107,12 +108,12 @@ class EvaluatorBase(object):
             X_true: Ground truth matrix.
             X_pred: Prediction matrix.
         """
-        X_true_shape = X_true.shape
-        if X_pred.shape != X_true_shape:
-            logger.warning("Prediction matrix shape %s is different from ground truth matrix shape %s.", X_pred.shape, X_true_shape)
+        X_true_shape = y_true.shape
+        if y_pred.shape != X_true_shape:
+            logger.warning("Prediction matrix shape %s is different from ground truth matrix shape %s.", y_pred.shape, X_true_shape)
             # We cannot expect the algorithm to predict an unknown item, so we
             # only check user dimension
-            if X_pred.shape[0] < X_true_shape[0] and not self.ignore_unknown_user:
+            if y_pred.shape[0] < X_true_shape[0] and not self.ignore_unknown_user:  # type: ignore
                 raise ValueError(
                     "Prediction matrix shape, user dimension, is less than the ground truth matrix shape."
                 )
@@ -120,20 +121,20 @@ class EvaluatorBase(object):
             if not self.ignore_unknown_item:
                 # prediction matrix would not contain unknown item ID
                 # update the shape of the prediction matrix to include the ID
-                X_pred = csr_matrix(
-                    (X_pred.data, X_pred.indices, X_pred.indptr),
-                    shape=(X_pred.shape[0], X_true_shape[1]),
+                y_pred = csr_matrix(
+                    (y_pred.data, y_pred.indices, y_pred.indptr),
+                    shape=(y_pred.shape[0], X_true_shape[1]),  # type: ignore
                 )
 
             # shapes might not be the same in the case of dropping unknowns
             # from the ground truth data. We ensure that the same unknowns
             # are dropped from the predictions
             if self.ignore_unknown_user:
-                X_pred = X_pred[: X_true_shape[0], :]
+                y_pred = y_pred[: X_true_shape[0], :]  # type: ignore
             if self.ignore_unknown_item:
-                X_pred = X_pred[:, : X_true_shape[1]]
+                y_pred = y_pred[:, : X_true_shape[1]]  # type: ignore
 
-        return X_pred
+        return y_pred
 
     def metric_results(
         self,
