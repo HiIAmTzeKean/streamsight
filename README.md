@@ -1,6 +1,6 @@
 # Streamsight
 
-![streamsight-logo](https://github.com/HiIAmTzeKean/streamsight/raw/master/docs/assets/_static/logo_removebg.png)
+![streamsight-logo](https://github.com/HiIAmTzeKean/streamsight/raw/master/docs/assets/_static/logo_name.png)
 
 [![PyPI Latest Release](https://img.shields.io/pypi/v/streamsight.svg)](https://pypi.org/project/streamsight/)&nbsp;&nbsp;
 [![Docs](https://github.com/hiiamtzekean/streamsight/actions/workflows/pages/pages-build-deployment/badge.svg)](https://github.com/hiiamtzekean/streamsight/)&nbsp;&nbsp;
