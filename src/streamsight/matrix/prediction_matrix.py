@@ -93,8 +93,8 @@ class PredictionMatrix(InteractionMatrix):
             # infer shape from the data
             known_user = np.nan_to_num(self._df[self._df != -1][InteractionMatrix.USER_IX].max(), nan=-1)
             known_item = np.nan_to_num(self._df[self._df != -1][InteractionMatrix.ITEM_IX].max(), nan=-1)
-            self.shape = (known_user, known_item)
-            logger.debug(f"(user x item) shape inferred is {self.shape}")
+            self.user_item_shape = (known_user, known_item)
+            logger.debug(f"(user x item) shape inferred is {self.user_item_shape}")
             if known_user == -1 or known_item == -1:
                 warn(
                     "One of the dimensions of the shape cannot be inferred from the data. "
@@ -120,28 +120,28 @@ class PredictionMatrix(InteractionMatrix):
             known_user = int(self._df[InteractionMatrix.USER_IX].max())
             known_item = int(self._df[InteractionMatrix.ITEM_IX].max())
             # + 1 as id starts from 0
-            self.shape = (max(shape[0], known_user + 1), max(shape[1], known_item + 1))
+            self.user_item_shape = (max(shape[0], known_user + 1), max(shape[1], known_item + 1))
         else:
-            self.shape = shape
-        logger.debug(f"Final (user x item) shape defined is {self.shape}")
+            self.user_item_shape = shape
+        logger.debug(f"Final (user x item) shape defined is {self.user_item_shape}")
         self._check_shape()
 
     def _check_shape(self) -> None:
-        if not hasattr(self, "shape"):
-            raise AttributeError("InteractionMatrix has no shape attribute. Please call mask_shape() first.")
-        if self.shape[0] is None or self.shape[1] is None:
+        if not hasattr(self, "user_item_shape"):
+            raise AttributeError("InteractionMatrix has no `user_item_shape` attribute. Please call mask_shape() first.")
+        if self.user_item_shape[0] is None or self.user_item_shape[1] is None:
             raise ValueError("Shape must be defined.")
 
         valid_df = self._df[self._df != -1]
         req_rows = valid_df[InteractionMatrix.USER_IX].max()
         req_cols = np.nan_to_num(valid_df[InteractionMatrix.ITEM_IX].max(), nan=-1)
 
-        if self.shape[0] < req_rows or self.shape[1] < req_cols:
+        if self.user_item_shape[0] < req_rows or self.user_item_shape[1] < req_cols:
             logger.warning(
                 "InteractionMatrix shape mismatch detected. "
                 "Current shape: %s. Required minimum: (%s, %s). "
                 "Data loss may occur.",
-                self.shape,
+                self.user_item_shape,
                 req_rows,
                 req_cols,
             )

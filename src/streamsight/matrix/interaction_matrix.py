@@ -3,7 +3,7 @@ import operator
 from collections.abc import Callable
 from copy import deepcopy
 from enum import StrEnum
-from typing import Literal, overload
+from typing import Literal, Self, overload
 from warnings import warn
 
 import numpy as np
@@ -90,10 +90,10 @@ class InteractionMatrix:
         shape: None | tuple[int, int] = None,
         skip_df_processing: bool = False,
     ) -> None:
-        self.shape: tuple[int, int]
+        self.user_item_shape: tuple[int, int]
         """The shape of the interaction matrix, i.e. `|user| x |item|`."""
         if shape:
-            self.shape = shape
+            self.user_item_shape = shape
 
         if skip_df_processing:
             self._df = df
@@ -185,14 +185,14 @@ class InteractionMatrix:
         :rtype: csr_matrix
         """
         # TODO issue with -1 labeling in the interaction matrix should i create prediction matrix
-        if not hasattr(self, "shape"):
-            raise AttributeError("InteractionMatrix has no shape attribute. Please call mask_shape() first.")
+        if not hasattr(self, "user_item_shape"):
+            raise AttributeError("InteractionMatrix has no `user_item_shape` attribute. Please call mask_shape() first.")
 
         values = np.ones(self._df.shape[0])
         indices = self._df[[InteractionMatrix.USER_IX, InteractionMatrix.ITEM_IX]].values
         indices = (indices[:, 0], indices[:, 1])
 
-        matrix = csr_matrix((values, indices), shape=self.shape, dtype=np.int32)
+        matrix = csr_matrix((values, indices), shape=self.user_item_shape, dtype=np.int32)
         return matrix
 
     @property
@@ -230,16 +230,15 @@ class InteractionMatrix:
         return self._apply_mask(mask, inplace=inplace)
 
     @overload
-    def _apply_mask(self, mask: pd.Series) -> "InteractionMatrix": ...
+    def _apply_mask(self, mask: pd.Series) -> Self: ...
     @overload
     def _apply_mask(self, mask: pd.Series, inplace: Literal[True]) -> None: ...
     @overload
-    def _apply_mask(self, mask: pd.Series, inplace: Literal[False]) -> "InteractionMatrix": ...
-    def _apply_mask(self, mask: pd.Series, inplace: bool = False) -> "None | InteractionMatrix":
+    def _apply_mask(self, mask: pd.Series, inplace: Literal[False]) -> Self: ...
+    def _apply_mask(self, mask: pd.Series, inplace: bool = False) -> None | Self:
         interaction_m = self if inplace else self.copy()
-        c_df = interaction_m._df[mask]
-        interaction_m._df = c_df
-        return None if inplace else interaction_m
+        interaction_m._df = interaction_m._df[mask]
+        return None if inplace else self
 
     def _timestamps_cmp(self, op: Callable, timestamp: float, inplace: bool = False) -> "None | InteractionMatrix":
         """Filter interactions based on timestamp.
@@ -336,9 +335,9 @@ class InteractionMatrix:
         df = pd.concat([self._df, im._df], copy=False)
 
         shape = None
-        if hasattr(self, "shape") and hasattr(im, "shape"):
-            shape = (max(self.shape[0], im.shape[0]), max(self.shape[1], im.shape[1]))
-            self.shape = shape
+        if hasattr(self, "user_item_shape") and hasattr(im, "user_item_shape"):
+            shape = (max(self.user_item_shape[0], im.user_item_shape[0]), max(self.user_item_shape[1], im.user_item_shape[1]))
+            self.user_item_shape = shape
 
         return InteractionMatrix(
             df,
@@ -355,8 +354,8 @@ class InteractionMatrix:
         data_part_1 = full_data.difference(data_part_2).to_frame().reset_index(drop=True)
 
         shape = None
-        if hasattr(self, "shape") and hasattr(im, "shape"):
-            shape = (max(self.shape[0], im.shape[0]), max(self.shape[1], im.shape[1]))
+        if hasattr(self, "user_item_shape") and hasattr(im, "user_item_shape"):
+            shape = (max(self.user_item_shape[0], im.user_item_shape[0]), max(self.user_item_shape[1], im.user_item_shape[1]))
 
         return InteractionMatrix(
             data_part_1,
@@ -383,9 +382,6 @@ class InteractionMatrix:
         users and items that has been released to the model. The length of the
         matrix is the number of interactions present in the matrix resulting
         from filter operations.
-
-        :return: Number of interactions in the matrix.
-        :rtype: int
         """
         return len(self._df)
 
@@ -639,21 +635,13 @@ class InteractionMatrix:
 
     @property
     def user_ids(self) -> set[int]:
-        """The set of all user IDs.
-
-        :return: set of all user IDs.
-        :rtype: set[int]
-        """
-        return set(self._df[self._df != -1][InteractionMatrix.USER_IX].dropna().unique())
+        """The set of all user ID in matrix"""
+        return set(self._df[InteractionMatrix.USER_IX].dropna().unique())
 
     @property
     def item_ids(self) -> set[int]:
-        """The set of all item IDs.
-
-        :return: set of all item IDs.
-        :rtype: set[int]
-        """
-        return set(self._df[self._df != -1][InteractionMatrix.ITEM_IX].dropna().unique())
+        """The set of all item ID in matrix"""
+        return set(self._df[InteractionMatrix.ITEM_IX].dropna().unique())
 
     @property
     def num_interactions(self) -> int:
@@ -703,27 +691,27 @@ class InteractionMatrix:
         `max_global_user_id` considers all user IDs present in the dataframe,
         including users that are only encountered during prediction time.
         """
-        return max(int(self._df[InteractionMatrix.USER_IX].max()) + 1, self.shape[0])
+        return max(int(self._df[InteractionMatrix.USER_IX].max()) + 1, self.user_item_shape[0])
 
     @property
     def max_global_item_id(self) -> int:
-        return max(int(self._df[InteractionMatrix.ITEM_IX].max()) + 1, self.shape[1])
+        return max(int(self._df[InteractionMatrix.ITEM_IX].max()) + 1, self.user_item_shape[1])
 
     @property
     def max_known_user_id(self) -> int:
         """The highest known user ID in the interaction matrix."""
         max_val = self._df[(self._df != -1).all(axis=1)][InteractionMatrix.USER_IX].max()
         if pd.isna(max_val):
-            return self.shape[0]
-        return min(int(max_val) + 1, self.shape[0])
+            return self.user_item_shape[0]
+        return min(int(max_val) + 1, self.user_item_shape[0])
 
     @property
     def max_known_item_id(self) -> int:
         """The highest known user ID in the interaction matrix."""
         max_val = self._df[(self._df != -1).all(axis=1)][InteractionMatrix.ITEM_IX].max()
         if pd.isna(max_val):
-            return self.shape[1]
-        return min(int(max_val) + 1, self.shape[1])
+            return self.user_item_shape[1]
+        return min(int(max_val) + 1, self.user_item_shape[1])
 
     @property
     def max_user_id(self) -> int:
@@ -780,7 +768,7 @@ class InteractionMatrix:
         timestamps = self.timestamps.groupby(["uid", "iid"]).max().reset_index()
         timestamp_mat = csr_matrix(
             (timestamps.ts.values, (timestamps.uid.values, timestamps.iid.values)),
-            shape=self.shape,
+            shape=self.user_item_shape,
         )
 
         return timestamp_mat
