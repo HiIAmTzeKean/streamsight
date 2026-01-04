@@ -2,14 +2,15 @@ from types import ModuleType
 
 import pytest
 
-from streamsight.registries.base import Registry
+from streamsight.models import BaseModel
+from streamsight.registries import Registry
 
 
-class MockClass1:
-    pass
+class MockClassNonBase(BaseModel):
+    IS_BASE = False
 
 
-class MockClass2:
+class MockClassIsBase:
     pass
 
 
@@ -17,28 +18,56 @@ def mock_function() -> None:
     pass
 
 
+def create_mock_module(name: str, all_list: list[str], attributes: dict) -> ModuleType:
+    """Helper function to create a mock module with specified attributes."""
+    module = ModuleType(name)
+    module.__all__ = all_list
+    for key, value in attributes.items():
+        setattr(module, key, value)
+    return module
+
+
 @pytest.fixture
 def mock_module() -> ModuleType:
     """Create a mock module for testing Registry."""
-    module = ModuleType("mock_module")
-    module.__all__ = ["MockClass1", "MockClass2", "mock_function", "SOME_CONSTANT"]
-    module.MockClass1 = MockClass1
-    module.MockClass2 = MockClass2
-    module.mock_function = mock_function
-    module.SOME_CONSTANT = 42
-    return module
+    attributes = {
+        "MockClassNonBase": MockClassNonBase,
+        "MockClassIsBase": MockClassIsBase,
+        "mock_function": mock_function,
+        "SOME_CONSTANT": 42,
+    }
+    return create_mock_module(
+        "mock_module",
+        [
+            "MockClassNonBase",
+            "MockClassIsBase",
+            "mock_function",
+            "SOME_CONSTANT",
+        ],
+        attributes,
+    )
 
 
 @pytest.fixture
 def mock_module_no_all() -> ModuleType:
     """Create a mock module without __all__ for testing."""
-    module = ModuleType("mock_module_no_all")
-    module.__all__ = []
-    module.MockClass1 = MockClass1
-    return module
+    attributes = {
+        "MockClassNonBase": MockClassNonBase,
+    }
+    return create_mock_module(
+        "mock_module_no_all",
+        [],
+        attributes,
+    )
 
 
 @pytest.fixture
-def registry(mock_module: ModuleType) -> Registry:
+def registry_valid(mock_module: ModuleType) -> Registry:
     """Create a Registry instance with mock module."""
     return Registry(mock_module)
+
+
+@pytest.fixture
+def registry_without_all(mock_module_no_all: ModuleType) -> Registry:
+    """Create a Registry instance with mock module without __all__."""
+    return Registry(mock_module_no_all)
