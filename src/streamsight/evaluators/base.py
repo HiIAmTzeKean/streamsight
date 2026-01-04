@@ -2,7 +2,7 @@ import logging
 from typing import Literal, Optional, Union, cast
 
 import pandas as pd
-from scipy.sparse import csr_matrix
+from scipy.sparse import csr, csr_matrix
 
 from streamsight.matrix import PredictionMatrix
 from streamsight.registries import MetricEntry
@@ -95,7 +95,7 @@ class EvaluatorBase(object):
         return unlabeled_data, ground_truth_data, self._current_timestamp
 
     def _prediction_shape_handler(
-        self, X_true_shape: tuple[int, int], X_pred: csr_matrix
+        self, X_true: csr_matrix, X_pred: csr_matrix
     ) -> csr_matrix:
         """Handle shape difference of the prediction matrix.
 
@@ -104,15 +104,10 @@ class EvaluatorBase(object):
         `ignore_unknown_user` and `ignore_unknown_item`.
 
         Args:
-            X_true_shape: Shape of the ground truth matrix.
+            X_true: Ground truth matrix.
             X_pred: Prediction matrix.
-
-        Raises:
-            ValueError: If the user dimension of the prediction matrix is less than the ground truth matrix.
-
-        Returns:
-            Prediction matrix with the same shape as the ground truth matrix.
         """
+        X_true_shape = X_true.shape
         if X_pred.shape != X_true_shape:
             logger.warning("Prediction matrix shape %s is different from ground truth matrix shape %s.", X_pred.shape, X_true_shape)
             # We cannot expect the algorithm to predict an unknown item, so we

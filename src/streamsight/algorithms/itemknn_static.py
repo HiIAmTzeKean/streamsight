@@ -1,7 +1,5 @@
 import logging
-
-import pandas as pd
-from scipy.sparse import csr_matrix
+from typing import Self
 
 from streamsight.matrix import InteractionMatrix
 from .base import Algorithm
@@ -25,7 +23,7 @@ class ItemKNNStatic(ItemKNN):
         self._is_fitted = False
         super().__init__(K)
 
-    def fit(self, X: InteractionMatrix) -> "Algorithm":
+    def fit(self, X: InteractionMatrix) -> Self:
         if self._is_fitted:
             return self
 

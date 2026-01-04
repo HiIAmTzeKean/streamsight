@@ -28,8 +28,8 @@ class Random(TopKAlgorithm):
     def _predict(self, X: PredictionMatrix) -> csr_matrix:
         predict_ui_df = X.get_prediction_data()._df  # noqa: SLF001
 
-        known_item_id = X.max_known_item_id + 1
-        intended_shape = (X.max_global_user_id + 1, known_item_id)
+        known_item_id = X.max_known_item_id
+        intended_shape = (X.max_global_user_id, known_item_id)
 
         to_predict = pd.Series(predict_ui_df.uid.unique())
         to_predict = to_predict.sort_values(ignore_index=True)

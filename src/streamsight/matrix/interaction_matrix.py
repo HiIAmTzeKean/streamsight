@@ -112,11 +112,7 @@ class InteractionMatrix:
         extra_columns = [col for col in df.columns if col not in required_columns]
         df = df[required_columns + extra_columns].copy()
         # TODO refactor this
-        df = (
-            df.reset_index(drop=True)
-            .reset_index()
-            .rename(columns={"index": InteractionMatrix.INTERACTION_IX})
-        )
+        df = df.reset_index(drop=True).reset_index().rename(columns={"index": InteractionMatrix.INTERACTION_IX})
 
         self._df = df
 
@@ -197,8 +193,8 @@ class InteractionMatrix:
         logger.debug(f"Shape of dataframe stored in matrix is now {self._df.shape} after masking")
 
         if shape and inherit_max_id:
-            max_user = self._df[InteractionMatrix.USER_IX].max()
-            max_item = self._df[InteractionMatrix.ITEM_IX].max()
+            max_user = int(self._df[InteractionMatrix.USER_IX].max())
+            max_item = int(self._df[InteractionMatrix.ITEM_IX].max())
             self.shape = (max(shape[0], max_user + 1), max(shape[1], max_item + 1))
         elif shape:
             self.shape = shape
@@ -207,21 +203,28 @@ class InteractionMatrix:
 
     def _check_shape(self) -> None:
         if not hasattr(self, "shape"):
-            raise AttributeError(
-                "InteractionMatrix has no shape attribute. Please call mask_shape() first."
-            )
+            raise AttributeError("InteractionMatrix has no shape attribute. Please call mask_shape() first.")
         if self.shape[0] is None or self.shape[1] is None:
             raise ValueError("Shape must be defined.")
 
-        if (
-            self.shape[0] < self._df[self._df != -1][InteractionMatrix.USER_IX].nunique()
-            or self.shape[1] < self._df[self._df != -1][InteractionMatrix.ITEM_IX].nunique()
-        ):
+        valid_df = self._df[self._df != -1]
+        req_rows = valid_df[InteractionMatrix.USER_IX].max()
+        req_cols = np.nan_to_num(valid_df[InteractionMatrix.ITEM_IX].max(), nan=-1)
+
+        if self.shape[0] < req_rows or self.shape[1] < req_cols:
+            logger.warning(
+                "InteractionMatrix shape mismatch detected. "
+                "Current shape: %s. Required minimum: (%s, %s). "
+                "Data loss may occur.",
+                self.shape,
+                req_rows,
+                req_cols,
+            )
             warn(
-                "Provided shape does not match dataframe, can't have "
-                "fewer rows than maximal user identifier or columns than "
-                "maximal item identifier.\n Call mask_shape() with drop "
-                "drop_unknown=True to drop unknown users and items."
+                "Provided shape does not match known id; there are id that are out of bounds. "
+                "Call mask_shape(drop_unknown=True) to drop unknown users and items.",
+                category=UserWarning,
+                stacklevel=2,
             )
 
     def copy(self) -> "InteractionMatrix":
@@ -293,9 +296,7 @@ class InteractionMatrix:
         """
         # TODO issue with -1 labeling in the interaction matrix should i create prediction matrix
         if not hasattr(self, "shape"):
-            raise AttributeError(
-                "InteractionMatrix has no shape attribute. Please call mask_shape() first."
-            )
+            raise AttributeError("InteractionMatrix has no shape attribute. Please call mask_shape() first.")
 
         values = np.ones(self._df.shape[0])
         indices = self._df[[InteractionMatrix.USER_IX, InteractionMatrix.ITEM_IX]].values
@@ -348,9 +349,7 @@ class InteractionMatrix:
         interaction_m._df = c_df
         return None if inplace else interaction_m
 
-    def _timestamps_cmp(
-        self, op: Callable, timestamp: float, inplace: bool = False
-    ) -> Optional["InteractionMatrix"]:
+    def _timestamps_cmp(self, op: Callable, timestamp: float, inplace: bool = False) -> Optional["InteractionMatrix"]:
         """Filter interactions based on timestamp.
         Keep only interactions for which op(t, timestamp) is True.
 
@@ -370,9 +369,7 @@ class InteractionMatrix:
     def timestamps_gt(self, timestamp: float) -> "InteractionMatrix": ...
     @overload
     def timestamps_gt(self, timestamp: float, inplace: Literal[True]) -> None: ...
-    def timestamps_gt(
-        self, timestamp: float, inplace: bool = False
-    ) -> Optional["InteractionMatrix"]:
+    def timestamps_gt(self, timestamp: float, inplace: bool = False) -> Optional["InteractionMatrix"]:
         """Select interactions after a given timestamp.
 
         :param timestamp: The timestamp with which
@@ -389,9 +386,7 @@ class InteractionMatrix:
     def timestamps_gte(self, timestamp: float) -> "InteractionMatrix": ...
     @overload
     def timestamps_gte(self, timestamp: float, inplace: Literal[True]) -> None: ...
-    def timestamps_gte(
-        self, timestamp: float, inplace: bool = False
-    ) -> Optional["InteractionMatrix"]:
+    def timestamps_gte(self, timestamp: float, inplace: bool = False) -> Optional["InteractionMatrix"]:
         """Select interactions after and including a given timestamp.
 
         :param timestamp: The timestamp with which
@@ -408,9 +403,7 @@ class InteractionMatrix:
     def timestamps_lt(self, timestamp: float) -> "InteractionMatrix": ...
     @overload
     def timestamps_lt(self, timestamp: float, inplace: Literal[True]) -> None: ...
-    def timestamps_lt(
-        self, timestamp: float, inplace: bool = False
-    ) -> Optional["InteractionMatrix"]:
+    def timestamps_lt(self, timestamp: float, inplace: bool = False) -> Optional["InteractionMatrix"]:
         """Select interactions up to a given timestamp.
 
         :param timestamp: The timestamp with which
@@ -427,9 +420,7 @@ class InteractionMatrix:
     def timestamps_lte(self, timestamp: float) -> "InteractionMatrix": ...
     @overload
     def timestamps_lte(self, timestamp: float, inplace: Literal[True]) -> None: ...
-    def timestamps_lte(
-        self, timestamp: float, inplace: bool = False
-    ) -> Optional["InteractionMatrix"]:
+    def timestamps_lte(self, timestamp: float, inplace: bool = False) -> Optional["InteractionMatrix"]:
         """Select interactions up to and including a given timestamp.
 
         :param timestamp: The timestamp with which
@@ -558,9 +549,7 @@ class InteractionMatrix:
 
         return self._apply_mask(mask, inplace=inplace)
 
-    def interactions_in(
-        self, interaction_ids: list[int], inplace: bool = False
-    ) -> Optional["InteractionMatrix"]:
+    def interactions_in(self, interaction_ids: list[int], inplace: bool = False) -> Optional["InteractionMatrix"]:
         """Select the interactions by their interaction ids
 
         :param interaction_ids: A list of interaction ids
@@ -576,9 +565,7 @@ class InteractionMatrix:
 
         mask = self._df[InteractionMatrix.INTERACTION_IX].isin(interaction_ids)
 
-        unknown_interaction_ids = set(interaction_ids).difference(
-            self._df[InteractionMatrix.INTERACTION_IX].unique()
-        )
+        unknown_interaction_ids = set(interaction_ids).difference(self._df[InteractionMatrix.INTERACTION_IX].unique())
 
         if unknown_interaction_ids:
             warn(f"IDs {unknown_interaction_ids} not present in data")
@@ -657,9 +644,7 @@ class InteractionMatrix:
         :rtype: InteractionMatrix
         """
         logger.debug("Performing get_user_n_last_interaction comparison")
-        return self._get_last_n_interactions(
-            ItemUserBasedEnum.USER, n_seq_data, t_upper, user_in, inplace
-        )
+        return self._get_last_n_interactions(ItemUserBasedEnum.USER, n_seq_data, t_upper, user_in, inplace)
 
     def get_items_n_last_interaction(
         self,
@@ -684,9 +669,7 @@ class InteractionMatrix:
         :rtype: InteractionMatrix
         """
         logger.debug("Performing get_item_n_last_interaction comparison")
-        return self._get_last_n_interactions(
-            ItemUserBasedEnum.ITEM, n_seq_data, t_upper, item_in, inplace
-        )
+        return self._get_last_n_interactions(ItemUserBasedEnum.ITEM, n_seq_data, t_upper, item_in, inplace)
 
     def get_users_n_first_interaction(
         self, n_seq_data: int = 1, t_lower: Optional[int] = None, inplace=False
@@ -751,9 +734,7 @@ class InteractionMatrix:
         :return: InteractionMatrix with only the known data.
         :rtype: InteractionMatrix
         """
-        mask = (self._df[InteractionMatrix.USER_IX] != -1) & (
-            self._df[InteractionMatrix.ITEM_IX] != -1
-        )
+        mask = (self._df[InteractionMatrix.USER_IX] != -1) & (self._df[InteractionMatrix.ITEM_IX] != -1)
         return self._apply_mask(mask)
 
     @property
@@ -822,29 +803,27 @@ class InteractionMatrix:
         `max_global_user_id` considers all user IDs present in the dataframe,
         including users that are only encountered during prediction time.
         """
-        return max(int(self._df[InteractionMatrix.USER_IX].max()), self.shape[0])
+        return max(int(self._df[InteractionMatrix.USER_IX].max()) + 1, self.shape[0])
 
     @property
     def max_global_item_id(self) -> int:
-        return max(int(self._df[InteractionMatrix.ITEM_IX].max()), self.shape[1])
+        return max(int(self._df[InteractionMatrix.ITEM_IX].max()) + 1, self.shape[1])
 
     @property
     def max_known_user_id(self) -> int:
-        """The highest known user ID in the interaction matrix.
-        """
+        """The highest known user ID in the interaction matrix."""
         max_val = self._df[(self._df != -1).all(axis=1)][InteractionMatrix.USER_IX].max()
         if pd.isna(max_val):
             return self.shape[0]
-        return min(int(max_val), self.shape[0])
+        return min(int(max_val) + 1, self.shape[0])
 
     @property
     def max_known_item_id(self) -> int:
-        """The highest known user ID in the interaction matrix.
-        """
+        """The highest known user ID in the interaction matrix."""
         max_val = self._df[(self._df != -1).all(axis=1)][InteractionMatrix.ITEM_IX].max()
         if pd.isna(max_val):
             return self.shape[1]
-        return min(int(max_val), self.shape[1])
+        return min(int(max_val) + 1, self.shape[1])
 
     @property
     def max_user_id(self) -> int:
@@ -889,12 +868,8 @@ class InteractionMatrix:
         """
         if not self.has_timestamps:
             raise TimestampAttributeMissingError()
-        index = pd.MultiIndex.from_frame(
-            self._df[[InteractionMatrix.USER_IX, InteractionMatrix.ITEM_IX]]
-        )
-        return pd.DataFrame(self._df[[InteractionMatrix.TIMESTAMP_IX]]).set_index(index)[
-            InteractionMatrix.TIMESTAMP_IX
-        ]
+        index = pd.MultiIndex.from_frame(self._df[[InteractionMatrix.USER_IX, InteractionMatrix.ITEM_IX]])
+        return pd.DataFrame(self._df[[InteractionMatrix.TIMESTAMP_IX]]).set_index(index)[InteractionMatrix.TIMESTAMP_IX]
 
     @property
     def latest_interaction_timestamps_matrix(self) -> csr_matrix:

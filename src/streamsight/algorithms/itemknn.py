@@ -74,28 +74,44 @@ class ItemKNN(TopKItemSimilarityMatrixAlgorithm, PopularityPaddingMixin):
         uid_to_predict = predict_ui_df[predict_ui_df.uid < self.X_.shape[0]].uid.unique()
         uid_to_predict = sorted(uid_to_predict.tolist())
 
-        features: csr_matrix = self.X_[uid_to_predict]
+        # features: csr_matrix = self.X_[uid_to_predict]
+        # we try without any filtering on the feature matrix
+        features: csr_matrix = self.X_
         scores = features @ self.similarity_matrix_
 
         if not isinstance(scores, csr_matrix):
             scores = csr_matrix(scores)
 
-        intended_shape = (X.max_global_user_id + 1, X.max_global_item_id + 1)
+        intended_shape = (X.max_global_user_id, X.max_global_item_id)
 
         if scores.shape == intended_shape:
             return scores
 
+        # there are 2 cases where the shape is different:
+        # 1. The algorithm did not predict unknown user, causing shortage in rows
+        # 2. The algorithm not aware of unknown items, causing shortage in columns
+
+        # handle case 1
+        if scores.shape[1] < intended_shape[1]:
+            scores = self._pad_unknown_iid_with_none_strategy(
+                y_pred=scores,
+                current_shape=scores.shape,
+                intended_shape=intended_shape,
+            )
+
+        # handle case 2
         if self.pad_with_popularity:
-            scores = self._pad_predict_with_popularity_strategy(
+            scores = self._pad_uknown_uid_with_popularity_strategy(
                 X_pred=scores,
                 intended_shape=intended_shape,
                 predict_ui_df=predict_ui_df,
             )
         else:
-            current_shape = (X.max_known_user_id + 1, X.max_known_item_id + 1)
-            scores = self._pad_predict_with_random_strategy(
+            # current_shape = (X.max_known_user_id, X.max_known_item_id)
+            scores = self._pad_unknown_uid_with_random_strategy(
                 X_pred=scores,
-                current_shape=current_shape,
+                current_shape=scores.shape,
+                # current_shape=current_shape,
                 intended_shape=intended_shape,
                 predict_ui_df=predict_ui_df,
             )

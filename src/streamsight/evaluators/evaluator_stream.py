@@ -407,10 +407,11 @@ class EvaluatorStreamer(EvaluatorBase):
             X_pred: The prediction of the algorithm.
         """
         # get top k ground truth interactions
-        X_true = self._ground_truth_data_cache.get_users_n_first_interaction(self.metric_k)
+        X_true = self._ground_truth_data_cache
+        # X_true = self._ground_truth_data_cache.get_users_n_first_interaction(self.metric_k)
         X_true = X_true.binary_values
 
-        X_pred = self._prediction_shape_handler(X_true.shape, X_pred)
+        X_pred = self._prediction_shape_handler(X_true, X_pred)
         algorithm_name = self._algo_state_mgr.get_algorithm_identifier(algo_id)
 
         # evaluate the prediction

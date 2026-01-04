@@ -11,7 +11,7 @@ from sklearn.base import BaseEstimator
 from sklearn.utils.validation import check_is_fitted
 
 from streamsight.matrix import InteractionMatrix, ItemUserBasedEnum, PredictionMatrix, to_csr_matrix
-from streamsight.utils.util import add_rows_to_csr_matrix
+from streamsight.utils.util import add_rows_to_csr_matrix, add_columns_to_csr_matrix
 from ..models import BaseModel, ParamMixin
 
 
@@ -184,7 +184,28 @@ class Algorithm(BaseEstimator, BaseModel, ParamMixin):
         logger.debug(f"Fitting {self.name} complete - Took {end - start:.3}s")
         return self
 
-    def _pad_predict_with_random_strategy(
+    def _pad_unknown_iid_with_none_strategy(
+        self,
+        y_pred: csr_matrix,
+        current_shape: tuple[int, int],
+        intended_shape: tuple[int, int],
+    ) -> csr_matrix:
+        """Pad the predictions with empty fields for unknown items.
+
+        This is to ensure that when we compute the performance of the prediction, we are
+        comparing the prediction against the ground truth for the same set of items.
+        """
+        if y_pred.shape == intended_shape:
+            return y_pred
+
+        known_user_id, known_item_id = current_shape
+        logger.debug(f"Padding item ID in range({known_item_id}, {intended_shape[1]}) with empty fields")
+        y_pred = add_columns_to_csr_matrix(y_pred, intended_shape[1] - known_item_id)
+        logger.debug(f"Padding by {self.name} completed")
+        return y_pred
+
+    # TODO change X_pred to y_pred for consistency
+    def _pad_unknown_uid_with_random_strategy(
         self,
         X_pred: csr_matrix,
         current_shape: tuple[int, int],
@@ -207,6 +228,7 @@ class Algorithm(BaseEstimator, BaseModel, ParamMixin):
             return X_pred
 
         known_user_id, known_item_id = current_shape
+        # +1 to include the last user id
         X_pred = add_rows_to_csr_matrix(X_pred, intended_shape[0] - known_user_id)
         # pad users with random items
         logger.debug(f"Padding user ID in range({known_user_id}, {intended_shape[0]}) with random items")
@@ -283,7 +305,7 @@ class PopularityPaddingMixin:
 
         return popularity_vector
 
-    def _pad_predict_with_popularity_strategy(
+    def _pad_uknown_uid_with_popularity_strategy(
         self,
         X_pred: csr_matrix,
         intended_shape: tuple,
