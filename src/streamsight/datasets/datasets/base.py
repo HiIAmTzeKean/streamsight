@@ -2,6 +2,7 @@ import logging
 import os
 import time
 from abc import abstractmethod
+from datetime import datetime
 from typing import ClassVar
 
 import pandas as pd
@@ -125,7 +126,7 @@ class Dataset(DataFetcher):
             raise RuntimeError("timestamp_max can only be accessed after load() has been called.")
         return self._timestamp_max
 
-    def get_timestamp_range(self) -> tuple[int, int]:
+    def get_timestamp_range_in_epoch(self) -> tuple[int, int]:
         """Get the minimum and maximum timestamps in the dataset.
 
         Returns:
@@ -135,6 +136,19 @@ class Dataset(DataFetcher):
             RuntimeError: If load() has not been called yet.
         """
         return self.timestamp_min, self.timestamp_max
+
+    def get_timestamp_range_in_datetime(self) -> tuple[datetime, datetime]:
+        """Get the minimum and maximum timestamps in the dataset.
+
+        Returns:
+            A tuple of (min_timestamp, max_timestamp).
+
+        Raises:
+            RuntimeError: If load() has not been called yet.
+        """
+        min_dt = datetime.fromtimestamp(self.timestamp_min)
+        max_dt = datetime.fromtimestamp(self.timestamp_max)
+        return min_dt, max_dt
 
     def add_filter(self, filter_: Filter) -> None:
         """Add a filter to be applied when loading the data.
