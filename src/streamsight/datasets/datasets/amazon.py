@@ -4,8 +4,7 @@ from typing import ClassVar
 import numpy as np
 import pandas as pd
 
-from streamsight.datasets.base import Dataset
-from streamsight.datasets.config import (
+from ..config import (
     AmazonBookDatasetConfig,
     AmazonDatasetConfig,
     AmazonMovieDatasetConfig,
@@ -18,6 +17,7 @@ from ..metadata.amazon import (
     AmazonMusicItemMetadata,
     AmazonSubscriptionBoxesItemMetadata,
 )
+from .base import Dataset
 
 
 logger = logging.getLogger(__name__)

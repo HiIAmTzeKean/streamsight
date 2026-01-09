@@ -7,9 +7,9 @@ import pandas as pd
 from tqdm import tqdm
 from typing_extensions import ClassVar
 
-from streamsight.datasets.base import Dataset
-from streamsight.datasets.config import LastFMDatasetConfig
+from ..config import LastFMDatasetConfig
 from ..metadata.lastfm import LastFMItemMetadata, LastFMTagMetadata, LastFMUserMetadata
+from .base import Dataset
 
 
 logger = logging.getLogger(__name__)
