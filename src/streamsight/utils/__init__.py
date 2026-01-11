@@ -63,21 +63,21 @@ warnings.warn("This warning will not appear.")
 - `create_config_yaml`: Generate configuration YAML file for Streamsight
 """
 
-from streamsight.utils.logging_tools import (
+from .logging_tools import (
     log_level,
     log_level_by_name,
     prepare_logger,
     suppress_specific_warnings,
     suppress_warnings,
 )
-from streamsight.utils.path import (
+from .path import (
     get_cache_dir,
     get_data_dir,
     get_logs_dir,
     get_repo_root,
     safe_dir,
 )
-from streamsight.utils.util import (
+from .util import (
     ProgressBar,
     add_columns_to_csr_matrix,
     add_rows_to_csr_matrix,
@@ -87,7 +87,8 @@ from streamsight.utils.util import (
     to_binary,
     to_tuple,
 )
-from streamsight.utils.yaml_tool import create_config_yaml
+from .uuid_util import generate_algorithm_uuid
+from .yaml_tool import create_config_yaml
 
 
 __all__ = [
@@ -110,4 +111,5 @@ __all__ = [
     "get_logs_dir",
     "get_repo_root",
     "invert",
+    "generate_algorithm_uuid",
 ]

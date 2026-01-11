@@ -1,4 +1,5 @@
 import logging
+import uuid
 from warnings import warn
 
 from streamsight.algorithms import Algorithm
@@ -42,6 +43,7 @@ class EvaluatorPipelineBuilder(Builder):
         self,
         algorithm: type[Algorithm],
         params: dict[str, int] = {},
+        algo_uuid: None | uuid.UUID = None,
     ) -> None:
         """Add algorithm to evaluate.
 
@@ -61,7 +63,7 @@ class EvaluatorPipelineBuilder(Builder):
                 " other components please set the setting first. Call add_setting() method."
             )
 
-        self.algo_state_mgr.register(algo_ptr=algorithm, params=params)
+        self.algo_state_mgr.register(algo_ptr=algorithm, params=params, algo_uuid=algo_uuid)
 
     def _check_ready(self) -> None:
         """Check if the builder is ready to construct Evaluator.

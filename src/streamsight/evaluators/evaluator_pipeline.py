@@ -178,7 +178,7 @@ class EvaluatorPipeline(EvaluatorBase):
                 metric.calculate(X_true, X_pred)
                 self._acc.add(
                     metric=metric,
-                    algorithm_name=self.algo_state_mgr.get_algorithm_identifier(algo_state.algo_id),
+                    algorithm_name=self.algo_state_mgr.get_algorithm_identifier(algo_state.algo_uuid),
                 )
 
     def _data_release_step(self) -> None:
