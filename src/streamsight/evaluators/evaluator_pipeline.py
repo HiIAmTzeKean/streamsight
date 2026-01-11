@@ -10,6 +10,7 @@ from streamsight.settings import EOWSettingError, Setting
 from ..matrix import PredictionMatrix
 from .accumulator import MetricAccumulator
 from .base import EvaluatorBase
+from .state_management import AlgorithmStateManager
 
 
 logger = logging.getLogger(__name__)
@@ -58,7 +59,8 @@ class EvaluatorPipeline(EvaluatorBase):
 
     def __init__(
         self,
-        algorithm_entries: list[AlgorithmEntry],
+        # algorithm_entries: list[AlgorithmEntry],
+        algo_state_mgr: AlgorithmStateManager,
         metric_entries: list[MetricEntry],
         setting: Setting,
         metric_k: int,
@@ -75,19 +77,10 @@ class EvaluatorPipeline(EvaluatorBase):
             seed=seed,
         )
 
-        self.algorithm_entries = algorithm_entries
-        self.algorithm: list[Algorithm]
-
-    def _instantiate_algorithm(self) -> None:
-        """Instantiate the algorithms from the algorithm entries.
-
-        This method instantiates the algorithms and stores them in :attr:`algorithm`.
-        Each time this method is called, the algorithms are re-instantiated.
-        """
-        self.algorithm = []
-        for algorithm_entry in self.algorithm_entries:
-            params = algorithm_entry.params or {}
-            self.algorithm.append(ALGORITHM_REGISTRY.get(algorithm_entry.name)(**params))
+        # self.algorithm_entries = algorithm_entries
+        self.algo_state_mgr = algo_state_mgr
+        """Algorithm state manager to manage the algorithm states."""
+        # self.algorithm: list[Algorithm]
 
     def _ready_algo(self) -> None:
         """Train the algorithms with the background data.
@@ -98,15 +91,13 @@ class EvaluatorPipeline(EvaluatorBase):
 
         :raises ValueError: If algorithm is not instantiated
         """
-        if not hasattr(self, "algorithm"):
-            raise ValueError("Algorithm not instantiated")
         background_data = self.setting.background_data
         self.user_item_base.update_known_user_item_base(background_data)
         training_data = PredictionMatrix.from_interaction_matrix(background_data)
         training_data.mask_user_item_shape(self.user_item_base.known_shape)
 
-        for algo in self.algorithm:
-            algo.fit(training_data)
+        for algo_state in self.algo_state_mgr.values():
+            algo_state.algo_ptr.fit(training_data)
 
     def _ready_evaluator(self) -> None:
         """Pre-phase of the evaluator. (Phase 1)
@@ -131,7 +122,6 @@ class EvaluatorPipeline(EvaluatorBase):
         5. Prepare the data generators for the setting
         """
         logger.info("Phase 1: Preparing the evaluator...")
-        self._instantiate_algorithm()
         self._ready_algo()
         logger.debug("Algorithms trained with background data...")
 
@@ -178,15 +168,18 @@ class EvaluatorPipeline(EvaluatorBase):
         # get the top k interaction per user
         X_true = ground_truth_data.get_users_n_first_interaction(self.metric_k)
         X_true = X_true.binary_values
-        for algo in self.algorithm:
-            X_pred = algo.predict(unlabeled_data)
+        for algo_state in self.algo_state_mgr.values():
+            X_pred = algo_state.algo_ptr.predict(unlabeled_data)
             X_pred = self._prediction_shape_handler(X_true, X_pred)
 
             for metric_entry in self.metric_entries:
                 metric_cls = METRIC_REGISTRY.get(metric_entry.name)
                 metric: Metric = metric_cls(K=metric_entry.K, timestamp_limit=current_timestamp)
                 metric.calculate(X_true, X_pred)
-                self._acc.add(metric=metric, algorithm_name=algo.identifier)
+                self._acc.add(
+                    metric=metric,
+                    algorithm_name=self.algo_state_mgr.get_algorithm_identifier(algo_state.algo_uuid),
+                )
 
     def _data_release_step(self) -> None:
         """Data release phase. (Phase 3)
@@ -216,8 +209,8 @@ class EvaluatorPipeline(EvaluatorBase):
         incremental_data = PredictionMatrix.from_interaction_matrix(incremental_data)
         incremental_data.mask_user_item_shape(self.user_item_base.known_shape)
 
-        for algo in self.algorithm:
-            algo.fit(incremental_data)
+        for algo_state in self.algo_state_mgr.values():
+            algo_state.algo_ptr.fit(incremental_data)
 
     def run_step(self, reset=False) -> None:
         """Run a single step of the evaluator.
@@ -233,9 +226,7 @@ class EvaluatorPipeline(EvaluatorBase):
         """
         if reset:
             self._run_step = 0
-            logger.info(
-                f"There is a total of {self.setting.num_split} steps. Running step {self._run_step}"
-            )
+            logger.info(f"There is a total of {self.setting.num_split} steps. Running step {self._run_step}")
             self._ready_evaluator()
             logger.info("Evaluator ready...")
             self._evaluate_step()
@@ -243,9 +234,7 @@ class EvaluatorPipeline(EvaluatorBase):
             return
 
         if self._run_step > self.setting.num_split:
-            logger.info(
-                "Finished running all steps, call `run_step(reset=True)` to run the evaluation again"
-            )
+            logger.info("Finished running all steps, call `run_step(reset=True)` to run the evaluation again")
             warn("Running this method again will not have any effect.")
             return
         logger.info("Running step %d", self._run_step)
@@ -262,9 +251,7 @@ class EvaluatorPipeline(EvaluatorBase):
         :type num_steps: int
         """
         if self._run_step + num_steps > self.setting.num_split:
-            raise ValueError(
-                f"Cannot run {num_steps} steps, only {self.setting.num_split - self._run_step} steps left"
-            )
+            raise ValueError(f"Cannot run {num_steps} steps, only {self.setting.num_split - self._run_step} steps left")
         for _ in tqdm(range(num_steps)):
             self.run_step()
 

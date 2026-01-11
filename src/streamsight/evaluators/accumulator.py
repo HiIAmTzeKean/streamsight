@@ -103,14 +103,14 @@ class MetricAccumulator:
         df = pd.DataFrame.from_dict(self.user_level_metrics, orient="index").explode(
             ["user_id", "score"]
         )
-        df = df.rename_axis(["Algorithm", "Timestamp", "Metric"])
+        df = df.rename_axis(["algorithm", "timestamp", "metric"])
         return df
 
     def df_window_level_metric(self) -> pd.DataFrame:
         df = pd.DataFrame.from_dict(self.window_level_metrics, orient="index").explode(
             ["score", "num_user"]
         )
-        df = df.rename_axis(["Algorithm", "Timestamp", "Metric"])
+        df = df.rename_axis(["algorithm", "timestamp", "metric"])
         df.rename(columns={"score": "window_score"}, inplace=True)
         return df
 
@@ -123,9 +123,9 @@ class MetricAccumulator:
         df = pd.DataFrame.from_dict(self.window_level_metrics, orient="index").explode(
             ["score", "num_user"]
         )
-        df = df.rename_axis(["Algorithm", "Timestamp", "Metric"])
-        result = df.groupby(["Algorithm", "Metric"]).mean()["score"].to_frame()
-        result["num_window"] = df.groupby(["Algorithm", "Metric"]).count()["score"]
+        df = df.rename_axis(["algorithm", "timestamp", "metric"])
+        result = df.groupby(["algorithm", "metric"]).mean()["score"].to_frame()
+        result["num_window"] = df.groupby(["algorithm", "metric"]).count()["score"]
         result = result.rename(columns={"score": "macro_score"})
         return result
 
@@ -138,9 +138,9 @@ class MetricAccumulator:
         df = pd.DataFrame.from_dict(self.user_level_metrics, orient="index").explode(
             ["user_id", "score"]
         )
-        df = df.rename_axis(["Algorithm", "Timestamp", "Metric"])
-        result = df.groupby(["Algorithm", "Metric"])["score"].mean().to_frame()
-        result["num_user"] = df.groupby(["Algorithm", "Metric"])["score"].count()
+        df = df.rename_axis(["algorithm", "timestamp", "metric"])
+        result = df.groupby(["algorithm", "metric"])["score"].mean().to_frame()
+        result["num_user"] = df.groupby(["algorithm", "metric"])["score"].count()
         result = result.rename(columns={"score": "micro_score"})
         return result
 
