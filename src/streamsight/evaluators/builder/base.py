@@ -1,6 +1,5 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import Optional, Union
 from warnings import warn
 
 from streamsight.registries import (
@@ -9,6 +8,7 @@ from streamsight.registries import (
 )
 from streamsight.settings import Setting
 from streamsight.utils import arg_to_str
+from ..base import EvaluatorBase
 
 
 logger = logging.getLogger(__name__)
@@ -63,7 +63,7 @@ class Builder(ABC):
         """
         self.metric_k = K
 
-    def add_metric(self, metric: Union[str, type]) -> None:
+    def add_metric(self, metric: str | type) -> None:
         """Add metric to evaluate algorithm on.
 
         Metric will be added to the metric_entries dict where it will later be
@@ -157,7 +157,7 @@ class Builder(ABC):
             )
 
     @abstractmethod
-    def build(self):
+    def build(self) -> EvaluatorBase:
         """Build object.
 
         Raises:

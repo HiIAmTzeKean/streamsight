@@ -76,7 +76,7 @@ class EvaluatorStreamer(EvaluatorBase):
         ignore_unknown_user: bool = True,
         ignore_unknown_item: bool = True,
         seed: int = 42,
-        strategy: Optional[EvaluationStrategy] = None,
+        strategy: None | EvaluationStrategy = None,
     ) -> None:
         super().__init__(
             metric_entries,
