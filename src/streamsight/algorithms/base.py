@@ -138,30 +138,6 @@ class Algorithm(BaseEstimator, BaseModel, ParamMixin):
         """
         return to_csr_matrix(X, binary=True)
 
-    # def _transform_predict_input(self, X: InteractionMatrix) -> csr_matrix:
-    #     """Transform the input of predict to expected type
-
-    #     Data will be turned into a binary csr matrix.
-
-    #     :param X: User-item interaction matrix used as input to predict
-    #     :type X: InteractionMatrix
-    #     :return: Transformed user-item interaction matrix used as input to predict
-    #     :rtype: csr_matrix
-    #     """
-    #     return to_csr_matrix(X, binary=True)
-
-    # def _assert_is_interaction_matrix(self, *matrices: Matrix) -> None:
-    #     """Make sure that the passed matrices are all an InteractionMatrix."""
-    #     for X in matrices:
-    #         if type(X) != InteractionMatrix:
-    #             raise TypeError(f"{self.name} requires Interaction Matrix as input. Got {type(X)}.")
-
-    # def _assert_has_timestamps(self, *matrices: InteractionMatrix) -> None:
-    #     """Make sure that the matrices all have timestamp information."""
-    #     for X in matrices:
-    #         if not X.has_timestamps:
-    #             raise ValueError(f"{self.name} requires timestamp information in the InteractionMatrix.")
-
     def fit(self, X: InteractionMatrix) -> Self:
         """Fit the model to the input interaction matrix.
 
