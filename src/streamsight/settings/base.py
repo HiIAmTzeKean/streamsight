@@ -1,7 +1,6 @@
 import logging
 import time
 from abc import abstractmethod
-from functools import cache
 from typing import Any, Self, Union
 from warnings import warn
 
@@ -19,19 +18,22 @@ class Setting(BaseModel, ParamMixin):
     """Base class for defining an evaluation setting.
 
     Core Attributes:
+    - background_data: Data used for inital training of model. Interval is [0, background_t).
+    - unlabeled_data: List of unlabeled data. Each element is an InteractionMatrix
+        object of interval [0, t).
+    - ground_truth_data: List of ground truth data. Each element is an
+        InteractionMatrix object of interval [t, t + window_size).
+    - incremental_data: List of data used to incrementally update the model.
+        Each element is an InteractionMatrix object of interval [t, t + window_size).
+        Unique to SlidingWindowSetting.
+    - data_timestamp_limit: List of timestamps that the splitter will slide over.
 
-        background_data: Data used for training the model. Interval is [0, background_t).
-        unlabeled_data: List of unlabeled data. Each element is an InteractionMatrix
-            object of interval [0, t).
-        ground_truth_data: List of ground truth data. Each element is an
-            InteractionMatrix object of interval [t, t + window_size).
-        incremental_data: List of data used to incrementally update the model.
-            Each element is an InteractionMatrix object of interval [t, t + window_size).
-            Unique to SlidingWindowSetting.
-        data_timestamp_limit: List of timestamps that the splitter will slide over.
+    We will use `background_data` as the initial training set, `incremental_data` as the data
+    to incrementally update the model. However, for public methods, we will refer to both as
+    `training_data` to avoid confusion.
 
     Args:
-        seed: Seed for randomization. If None, a random seed will be generated.
+        seed: Seed for randomization. Defaults to 42.
     """
 
     def __init__(
@@ -191,7 +193,7 @@ class Setting(BaseModel, ParamMixin):
         return self._t_window
 
     @property
-    def unlabeled_data(self) -> Union[InteractionMatrix, list[InteractionMatrix]]:
+    def unlabeled_data(self) -> InteractionMatrix | list[InteractionMatrix]:
         """Get unlabeled data for model predictions.
 
         Contains the user/item ID for prediction along with previous sequential
@@ -207,7 +209,7 @@ class Setting(BaseModel, ParamMixin):
         return self._unlabeled_data
 
     @property
-    def ground_truth_data(self) -> Union[InteractionMatrix, list[InteractionMatrix]]:
+    def ground_truth_data(self) -> InteractionMatrix | list[InteractionMatrix]:
         """Get ground truth data for model evaluation.
 
         Contains the actual interactions of user-item that the model should predict.
@@ -374,7 +376,7 @@ class Setting(BaseModel, ParamMixin):
         Raises:
             IndexError: If index is out of range.
         """
-        if index < 0 or index >= self.num_split:
+        if index < 0 or index > self.num_split:
             raise IndexError(f"Index {index} out of range for {self.num_split} splits")
 
         if self._sliding_window_setting:
@@ -387,6 +389,7 @@ class Setting(BaseModel, ParamMixin):
             result = SplitResult(
                 unlabeled=self._unlabeled_data[index],
                 ground_truth=self._ground_truth_data[index],
+                # TODO change this variable to training_data when refactoring
                 incremental=(
                     self._incremental_data[index - 1] if index < len(self._incremental_data) and index > 0 else None
                 ),
