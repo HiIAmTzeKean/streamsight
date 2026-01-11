@@ -7,6 +7,7 @@ from streamsight.algorithms import Algorithm
 from streamsight.metrics import Metric
 from streamsight.registries import ALGORITHM_REGISTRY, METRIC_REGISTRY, AlgorithmEntry, MetricEntry
 from streamsight.settings import EOWSettingError, Setting
+from ..matrix import PredictionMatrix
 from .accumulator import MetricAccumulator
 from .base import EvaluatorBase
 
@@ -77,9 +78,6 @@ class EvaluatorPipeline(EvaluatorBase):
         self.algorithm_entries = algorithm_entries
         self.algorithm: list[Algorithm]
 
-        # internal state
-        self._current_timestamp: int
-
     def _instantiate_algorithm(self) -> None:
         """Instantiate the algorithms from the algorithm entries.
 
@@ -88,7 +86,7 @@ class EvaluatorPipeline(EvaluatorBase):
         """
         self.algorithm = []
         for algorithm_entry in self.algorithm_entries:
-            params = algorithm_entry.params
+            params = algorithm_entry.params or {}
             self.algorithm.append(ALGORITHM_REGISTRY.get(algorithm_entry.name)(**params))
 
     def _ready_algo(self) -> None:
@@ -104,11 +102,11 @@ class EvaluatorPipeline(EvaluatorBase):
             raise ValueError("Algorithm not instantiated")
         background_data = self.setting.background_data
         self.user_item_base.update_known_user_item_base(background_data)
-        # TODO timeline is not respected, can use flag to indicate a override the known user and item
-        background_data.mask_shape(self.user_item_base.known_shape)
+        training_data = PredictionMatrix.from_interaction_matrix(background_data)
+        training_data.mask_user_item_shape(self.user_item_base.known_shape)
 
         for algo in self.algorithm:
-            algo.fit(background_data)
+            algo.fit(training_data)
 
     def _ready_evaluator(self) -> None:
         """Pre-phase of the evaluator. (Phase 1)
@@ -182,7 +180,7 @@ class EvaluatorPipeline(EvaluatorBase):
         X_true = X_true.binary_values
         for algo in self.algorithm:
             X_pred = algo.predict(unlabeled_data)
-            X_pred = self._prediction_shape_handler(X_true.shape, X_pred)
+            X_pred = self._prediction_shape_handler(X_true, X_pred)
 
             for metric_entry in self.metric_entries:
                 metric_cls = METRIC_REGISTRY.get(metric_entry.name)
@@ -215,7 +213,8 @@ class EvaluatorPipeline(EvaluatorBase):
             raise ValueError("Incremental data is None in sliding window setting")
         self.user_item_base.reset_unknown_user_item_base()
         self.user_item_base.update_known_user_item_base(incremental_data)
-        incremental_data.mask_shape(self.user_item_base.known_shape)
+        incremental_data = PredictionMatrix.from_interaction_matrix(incremental_data)
+        incremental_data.mask_user_item_shape(self.user_item_base.known_shape)
 
         for algo in self.algorithm:
             algo.fit(incremental_data)
@@ -234,9 +233,6 @@ class EvaluatorPipeline(EvaluatorBase):
         """
         if reset:
             self._run_step = 0
-
-        self._run_step += 1
-        if self._run_step == 1:
             logger.info(
                 f"There is a total of {self.setting.num_split} steps. Running step {self._run_step}"
             )
@@ -252,7 +248,7 @@ class EvaluatorPipeline(EvaluatorBase):
             )
             warn("Running this method again will not have any effect.")
             return
-        logger.info(f"Running step {self._run_step}")
+        logger.info("Running step %d", self._run_step)
         self._evaluate_step()
         self._data_release_step()
 
@@ -265,6 +261,10 @@ class EvaluatorPipeline(EvaluatorBase):
         :param num_steps: Number of steps to run
         :type num_steps: int
         """
+        if self._run_step + num_steps > self.setting.num_split:
+            raise ValueError(
+                f"Cannot run {num_steps} steps, only {self.setting.num_split - self._run_step} steps left"
+            )
         for _ in tqdm(range(num_steps)):
             self.run_step()
 
@@ -279,6 +279,14 @@ class EvaluatorPipeline(EvaluatorBase):
         """
         self._ready_evaluator()
 
-        for _ in tqdm(range(self.setting.num_split)):
-            self._evaluate_step()
-            self._data_release_step()
+        with tqdm(total=self.setting.num_split, desc="Evaluating steps") as pbar:
+            while self._run_step <= self.setting.num_split:
+                logger.info("Running step %d", self._run_step)
+                self._evaluate_step()
+                pbar.update(1)
+                # if is last step, no need to release data anymore
+                # since there is no more evaluation that can be done
+                # break out of the loop
+                if self._run_step == self.setting.num_split:
+                    break
+                self._data_release_step()
