@@ -1,9 +1,12 @@
 import datetime
 import logging
 from collections.abc import Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
+from typing import Any
 from uuid import NAMESPACE_DNS, UUID, uuid5
+
+from streamsight.algorithms import Algorithm
 
 
 logger = logging.getLogger(__name__)
@@ -37,6 +40,7 @@ class AlgorithmStateEntry:
         algo_id: Unique identifier for the algorithm.
         state: State of the algorithm.
         data_segment: Data segment the algorithm is associated with.
+        params: Parameters for the algorithm.
         algo_ptr: Pointer to the algorithm object.
     """
 
@@ -44,7 +48,8 @@ class AlgorithmStateEntry:
     algo_id: UUID
     state: AlgorithmStateEnum = AlgorithmStateEnum.NEW
     data_segment: int = 0
-    algo_ptr: None | object = None
+    params: dict[str, Any] = field(default_factory=dict)
+    algo_ptr: None | type[Algorithm] | Algorithm = None
 
 
 class AlgorithmStateManager:
@@ -60,6 +65,24 @@ class AlgorithmStateManager:
             An iterator over the UUIDs of registered entries.
         """
         return iter(self._algorithms)
+
+    def __len__(self) -> int:
+        """Return the number of registered algorithms.
+
+        Returns:
+            The number of registered algorithms.
+        """
+        return len(self._algorithms)
+
+    def values(self) -> Iterator[AlgorithmStateEntry]:
+        """Return an iterator over registered AlgorithmStateEntry objects.
+
+        Allows iteration over the registered entries.
+
+        Returns:
+            An iterator over the registered entries.
+        """
+        return iter(self._algorithms.values())
 
     def __getitem__(self, key: UUID) -> AlgorithmStateEntry:
         if key not in self._algorithms:
@@ -105,17 +128,26 @@ class AlgorithmStateManager:
         """Get the current state of the algorithm with `algo_id`."""
         return self[algo_id].state
 
-    def register(self, name: None | str = None, algo_ptr: None | object = None) -> UUID:
+    def register(
+        self,
+        name: None | str = None,
+        algo_ptr: None | type[Algorithm] | Algorithm = None,
+        params: dict[str, Any] = {},
+    ) -> UUID:
         """Register new algorithm"""
         if not name and not algo_ptr:
             raise ValueError("Either name or algo_ptr must be provided for registration")
-        if algo_ptr and hasattr(algo_ptr, "identifier") and not name:
-            name = algo_ptr.identifier  # type: ignore[attr-defined]
-        if not name:
+        elif algo_ptr and isinstance(algo_ptr, type):
+            algo_ptr = algo_ptr(**params)
+            name = name or algo_ptr.identifier
+        elif algo_ptr and hasattr(algo_ptr, "identifier") and not name:
+            name = name or algo_ptr.identifier  # type: ignore[attr-defined]
+        elif not name:
             # This should not happen if name was provided or algo_ptr has identifier
             raise ValueError("Algorithm name was not provided and could not be inferred from Algorithm pointer")
+
         algo_id = uuid5(NAMESPACE_DNS, f"{name}{datetime.datetime.now()}")
-        entry = AlgorithmStateEntry(algo_id=algo_id, name=name, algo_ptr=algo_ptr)
+        entry = AlgorithmStateEntry(algo_id=algo_id, name=name, algo_ptr=algo_ptr, params=params)
         self._algorithms[algo_id] = entry
         logger.info(f"Registered algorithm '{name}' with ID {algo_id}")
         return algo_id
@@ -154,7 +186,10 @@ class AlgorithmStateManager:
         if state == AlgorithmStateEnum.PREDICTED:
             return False, "Algorithm has already requested data for this window"
         if state == AlgorithmStateEnum.READY:
-            return False, "The algorithm must be set to RUNNING state to request unlabeled data. Request training data first"
+            return (
+                False,
+                "The algorithm must be set to RUNNING state to request unlabeled data. Request training data first",
+            )
 
         return False, f"Unknown state {state}"
 

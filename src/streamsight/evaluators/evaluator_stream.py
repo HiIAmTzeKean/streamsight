@@ -1,6 +1,5 @@
 import logging
 from enum import Enum
-from typing import Optional, Union, cast
 from uuid import UUID
 
 from scipy.sparse import csr_matrix
@@ -17,7 +16,7 @@ from .accumulator import MetricAccumulator
 from .base import EvaluatorBase
 from .state_management import AlgorithmStateManager
 from .strategy import EvaluationStrategy, SlidingWindowStrategy
-from .warning import AlgorithmStateEnum, AlgorithmStatusWarning
+from .warning import AlgorithmStateEnum
 
 
 class EvaluatorState(Enum):
@@ -210,7 +209,7 @@ class EvaluatorStreamer(EvaluatorBase):
             EvaluatorState.INITIALIZED,
             "Cannot register algorithms after stream started"
         )
-        algo_id = self._algo_state_mgr.register(algorithm_name, algorithm)
+        algo_id = self._algo_state_mgr.register(name=algorithm_name, algo_ptr=algorithm)
         logger.debug(f"Algorithm {algo_id} registered")
         return algo_id
 

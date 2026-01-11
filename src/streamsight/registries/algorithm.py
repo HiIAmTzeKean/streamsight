@@ -1,5 +1,6 @@
 import importlib
 import logging
+import uuid
 from typing import Any, NamedTuple
 
 from .base import Registry
@@ -62,4 +63,5 @@ class AlgorithmEntry(NamedTuple):
     """
 
     name: str
+    uuid: uuid.UUID | None = None
     params: None | dict[str, Any] = None

@@ -1,12 +1,9 @@
 import logging
 from warnings import warn
 
+from streamsight.algorithms import Algorithm
 from streamsight.evaluators.evaluator_pipeline import EvaluatorPipeline
-from streamsight.registries import (
-    ALGORITHM_REGISTRY,
-    AlgorithmEntry,
-)
-from streamsight.utils import arg_to_str
+from ..state_management import AlgorithmStateManager
 from .base import Builder
 
 
@@ -39,13 +36,12 @@ class EvaluatorPipelineBuilder(Builder):
             ignore_unknown_item=ignore_unknown_item,
             seed=seed,
         )
-        self.algorithm_entries: list[AlgorithmEntry] = []
-        """list of algorithms to evaluate"""
+        self.algo_state_mgr = AlgorithmStateManager()
 
     def add_algorithm(
         self,
-        algorithm: str | type,
-        params: None | dict[str, int] = None,
+        algorithm: type[Algorithm],
+        params: dict[str, int] = {},
     ) -> None:
         """Add algorithm to evaluate.
 
@@ -65,14 +61,7 @@ class EvaluatorPipelineBuilder(Builder):
                 " other components please set the setting first. Call add_setting() method."
             )
 
-        algorithm = arg_to_str(algorithm)
-
-        # ? additional check for K value mismatch with setting
-
-        if algorithm not in ALGORITHM_REGISTRY:
-            raise ValueError(f"Algorithm {algorithm} could not be resolved.")
-
-        self.algorithm_entries.append(AlgorithmEntry(algorithm, params or {}))
+        self.algo_state_mgr.register(algo_ptr=algorithm, params=params)
 
     def _check_ready(self) -> None:
         """Check if the builder is ready to construct Evaluator.
@@ -82,17 +71,17 @@ class EvaluatorPipelineBuilder(Builder):
         """
         super()._check_ready()
 
-        if len(self.algorithm_entries) == 0:
+        if len(self.algo_state_mgr) == 0:
             raise RuntimeError("No algorithms specified, can't construct Evaluator")
 
-        for algo in self.algorithm_entries:
+        for algo_state in self.algo_state_mgr.values():
             if (
-                algo.params is not None
-                and "K" in algo.params
-                and algo.params["K"] < self.setting.top_K
+                algo_state.params is not None
+                and "K" in algo_state.params
+                and algo_state.params["K"] < self.setting.top_K
             ):
                 warn(
-                    f"Algorithm {algo.name} has K={algo.params['K']} but setting"
+                    f"Algorithm {algo_state.name} has K={algo_state.params['K']} but setting"
                     f" is configured top_K={self.setting.top_K}. The number of predictions"
                     " returned by the model is less than the K value to evaluate the predictions"
                     " on. This may distort the metric value."
@@ -109,7 +98,8 @@ class EvaluatorPipelineBuilder(Builder):
         """
         self._check_ready()
         return EvaluatorPipeline(
-            algorithm_entries=self.algorithm_entries,
+            # algorithm_entries=self.algorithm_entries,
+            algo_state_mgr=self.algo_state_mgr,
             metric_entries=list(self.metric_entries.values()),
             setting=self.setting,
             metric_k=self.metric_k,
