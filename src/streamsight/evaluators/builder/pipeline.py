@@ -1,5 +1,4 @@
 import logging
-from typing import Optional, Union
 from warnings import warn
 
 from streamsight.evaluators.evaluator_pipeline import EvaluatorPipeline
@@ -45,8 +44,8 @@ class EvaluatorPipelineBuilder(Builder):
 
     def add_algorithm(
         self,
-        algorithm: Union[str, type],
-        params: Optional[dict[str, int]] = None,
+        algorithm: str | type,
+        params: None | dict[str, int] = None,
     ) -> None:
         """Add algorithm to evaluate.
 
