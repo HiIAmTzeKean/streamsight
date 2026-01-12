@@ -230,15 +230,15 @@ class InteractionMatrix:
         return self._apply_mask(mask, inplace=inplace)
 
     @overload
-    def _apply_mask(self, mask: pd.Series) -> Self: ...
+    def _apply_mask(self, mask: pd.Series) -> "InteractionMatrix": ...
     @overload
     def _apply_mask(self, mask: pd.Series, inplace: Literal[True]) -> None: ...
     @overload
-    def _apply_mask(self, mask: pd.Series, inplace: Literal[False]) -> Self: ...
-    def _apply_mask(self, mask: pd.Series, inplace: bool = False) -> None | Self:
+    def _apply_mask(self, mask: pd.Series, inplace: Literal[False]) -> "InteractionMatrix": ...
+    def _apply_mask(self, mask: pd.Series, inplace: bool = False) -> "None | InteractionMatrix":
         interaction_m = self if inplace else self.copy()
         interaction_m._df = interaction_m._df[mask]
-        return None if inplace else self
+        return None if inplace else interaction_m
 
     def _timestamps_cmp(self, op: Callable, timestamp: float, inplace: bool = False) -> "None | InteractionMatrix":
         """Filter interactions based on timestamp.
