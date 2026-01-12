@@ -1,12 +1,12 @@
 import logging
-from typing import Literal, Optional, Union, cast
+from typing import Literal
 
 import pandas as pd
 from scipy.sparse import csr_matrix
 
-from streamsight.matrix import PredictionMatrix
-from streamsight.registries import MetricEntry
-from streamsight.settings import EOWSettingError, Setting
+from ..matrix import PredictionMatrix
+from ..registries import MetricEntry
+from ..settings import EOWSettingError, Setting
 from .accumulator import MetricAccumulator
 from .util import MetricLevelEnum, UserItemBaseStatus
 
@@ -138,12 +138,10 @@ class EvaluatorBase(object):
 
     def metric_results(
         self,
-        level: Union[
-            MetricLevelEnum, Literal["macro", "micro", "window", "user"]
-        ] = MetricLevelEnum.MACRO,
-        only_current_timestamp: Optional[bool] = False,
-        filter_timestamp: Optional[int] = None,
-        filter_algo: Optional[str] = None,
+        level: MetricLevelEnum | Literal["macro", "micro", "window", "user"] = MetricLevelEnum.MACRO,
+        only_current_timestamp: None | bool = False,
+        filter_timestamp: None | int = None,
+        filter_algo: None | str = None,
     ) -> pd.DataFrame:
         """Results of the metrics computed.
 
@@ -176,9 +174,12 @@ class EvaluatorBase(object):
         Returns:
             Dataframe representation of the metric.
         """
-        if not MetricLevelEnum.has_value(level):
+        if isinstance(level, str) and not MetricLevelEnum.has_value(level):
             raise ValueError("Invalid level specified")
         level = MetricLevelEnum(level)
+
+        if only_current_timestamp and filter_timestamp:
+            raise ValueError("Cannot specify both only_current_timestamp and filter_timestamp.")
 
         timestamp = None
         if only_current_timestamp:

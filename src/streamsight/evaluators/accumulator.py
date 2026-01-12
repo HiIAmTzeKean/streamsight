@@ -104,6 +104,7 @@ class MetricAccumulator:
             ["user_id", "score"]
         )
         df = df.rename_axis(["algorithm", "timestamp", "metric"])
+        df.rename(columns={"score": "user_score"}, inplace=True)
         return df
 
     def df_window_level_metric(self) -> pd.DataFrame:
