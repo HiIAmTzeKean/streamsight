@@ -3,8 +3,8 @@ from warnings import warn
 import numpy as np
 from scipy.sparse import csr_matrix, lil_matrix
 
-from streamsight.algorithms import Algorithm
-from streamsight.matrix.interaction_matrix import InteractionMatrix
+from streamsight.matrix import InteractionMatrix
+from .base import Algorithm
 
 
 class DecayPopularity(Algorithm):

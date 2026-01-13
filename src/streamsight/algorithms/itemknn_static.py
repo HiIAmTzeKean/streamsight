@@ -2,7 +2,6 @@ import logging
 from typing import Self
 
 from streamsight.matrix import InteractionMatrix
-from .base import Algorithm
 from .itemknn import ItemKNN
 
 
