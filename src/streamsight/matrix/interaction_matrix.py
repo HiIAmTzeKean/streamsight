@@ -230,15 +230,15 @@ class InteractionMatrix:
         return self._apply_mask(mask, inplace=inplace)
 
     @overload
-    def _apply_mask(self, mask: pd.Series) -> Self: ...
+    def _apply_mask(self, mask: pd.Series) -> "InteractionMatrix": ...
     @overload
     def _apply_mask(self, mask: pd.Series, inplace: Literal[True]) -> None: ...
     @overload
-    def _apply_mask(self, mask: pd.Series, inplace: Literal[False]) -> Self: ...
-    def _apply_mask(self, mask: pd.Series, inplace: bool = False) -> None | Self:
+    def _apply_mask(self, mask: pd.Series, inplace: Literal[False]) -> "InteractionMatrix": ...
+    def _apply_mask(self, mask: pd.Series, inplace: bool = False) -> "None | InteractionMatrix":
         interaction_m = self if inplace else self.copy()
         interaction_m._df = interaction_m._df[mask]
-        return None if inplace else self
+        return None if inplace else interaction_m
 
     def _timestamps_cmp(self, op: Callable, timestamp: float, inplace: bool = False) -> "None | InteractionMatrix":
         """Filter interactions based on timestamp.
@@ -602,16 +602,18 @@ class InteractionMatrix:
         return self._get_first_n_interactions(ItemUserBasedEnum.ITEM, n_seq_data, t_lower, inplace)
 
     @property
-    def binary_values(self) -> csr_matrix:
-        """All user-item interactions as a sparse, binary matrix of size (users, items).
+    def item_interaction_sequence_matrix(self) -> csr_matrix:
+        """Converts the interaction data into an item interaction sequence matrix.
 
-        An entry is 1 if there is at least one interaction between that user and item.
-        In all other cases the entry is 0.
-
-        :return: Binary csr_matrix of interactions.
-        :rtype: csr_matrix
+        Dataframe values are converted into such that the row sequence is maintained and
+        the item that interacted with will have the column at item_id marked with 1.
         """
-        return to_binary(self.values)
+        values = np.ones(self._df.shape[0])
+        indices = (np.arange(self._df.shape[0]), self._df[InteractionMatrix.ITEM_IX].to_numpy())
+        shape = (self._df.shape[0], self.user_item_shape[1])
+
+        sparse_matrix = csr_matrix((values, indices), shape=shape, dtype=values.dtype)
+        return sparse_matrix
 
     def get_prediction_data(self) -> "InteractionMatrix":
         """Get the data to be predicted.

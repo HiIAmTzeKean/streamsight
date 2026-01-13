@@ -21,8 +21,8 @@ class EvaluatorPipelineBuilder(Builder):
 
     def __init__(
         self,
-        ignore_unknown_user: bool = True,
-        ignore_unknown_item: bool = True,
+        ignore_unknown_user: bool = False,
+        ignore_unknown_item: bool = False,
         seed: int = 42,
     ) -> None:
         """Initialize the EvaluatorPipelineBuilder.
