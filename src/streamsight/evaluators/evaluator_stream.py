@@ -72,8 +72,8 @@ class EvaluatorStreamer(EvaluatorBase):
         metric_entries: list[MetricEntry],
         setting: Setting,
         metric_k: int,
-        ignore_unknown_user: bool = True,
-        ignore_unknown_item: bool = True,
+        ignore_unknown_user: bool = False,
+        ignore_unknown_item: bool = False,
         seed: int = 42,
         strategy: None | EvaluationStrategy = None,
     ) -> None:
@@ -350,13 +350,13 @@ class EvaluatorStreamer(EvaluatorBase):
         if not can_submit:
             raise PermissionError(f"Cannot submit prediction: {reason}")
 
-        self._evaluate_algo_pred(algo_id=algo_id, X_pred=X_pred)
+        self._evaluate_algo_pred(algo_id=algo_id, y_pred=X_pred)
         self._algo_state_mgr.transition(
             algo_id,
             AlgorithmStateEnum.PREDICTED,
         )
 
-    def _evaluate_algo_pred(self, algo_id: UUID, X_pred: csr_matrix) -> None:
+    def _evaluate_algo_pred(self, algo_id: UUID, y_pred: csr_matrix) -> None:
         """Evaluate the prediction for algorithm.
 
         Given the prediction and the algorithm ID, the method will evaluate the
@@ -368,14 +368,14 @@ class EvaluatorStreamer(EvaluatorBase):
 
         Args:
             algo_id: The unique identifier of the algorithm.
-            X_pred: The prediction of the algorithm.
+            y_pred: The prediction of the algorithm.
         """
         # get top k ground truth interactions
-        X_true = self._ground_truth_data_cache
-        # X_true = self._ground_truth_data_cache.get_users_n_first_interaction(self.metric_k)
-        X_true = X_true.binary_values
+        y_true = self._ground_truth_data_cache
+        # y_true = self._ground_truth_data_cache.get_users_n_first_interaction(self.metric_k)
+        y_true = y_true.item_interaction_sequence_matrix
 
-        X_pred = self._prediction_shape_handler(X_true, X_pred)
+        y_pred = self._prediction_shape_handler(y_true, y_pred)
         algorithm_name = self._algo_state_mgr.get_algorithm_identifier(algo_id)
 
         # evaluate the prediction
@@ -385,7 +385,7 @@ class EvaluatorStreamer(EvaluatorBase):
                 metric: Metric = metric_cls(K=metric_entry.K, timestamp_limit=self._current_timestamp)
             else:
                 metric: Metric = metric_cls(timestamp_limit=self._current_timestamp)
-            metric.calculate(X_true, X_pred)
+            metric.calculate(y_true, y_pred)
             self._acc.add(metric=metric, algorithm_name=algorithm_name)
 
         logger.debug(f"Prediction evaluated for algorithm {algo_id} complete")

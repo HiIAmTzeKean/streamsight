@@ -23,8 +23,8 @@ class EvaluatorBase(object):
     Args:
         metric_entries: List of metric entries to compute.
         setting: Setting object.
-        ignore_unknown_user: Ignore unknown users, defaults to True.
-        ignore_unknown_item: Ignore unknown items, defaults to True.
+        ignore_unknown_user: Ignore unknown users, defaults to False.
+        ignore_unknown_item: Ignore unknown items, defaults to False.
     """
 
     def __init__(
@@ -32,8 +32,8 @@ class EvaluatorBase(object):
         metric_entries: list[MetricEntry],
         setting: Setting,
         metric_k: int,
-        ignore_unknown_user: bool = True,
-        ignore_unknown_item: bool = True,
+        ignore_unknown_user: bool = False,
+        ignore_unknown_item: bool = False,
         seed: int = 42,
     ) -> None:
         self.metric_entries = metric_entries
@@ -87,12 +87,20 @@ class EvaluatorBase(object):
         self.user_item_base.update_unknown_user_item_base(ground_truth_data)
 
         mask_shape = (self.user_item_base.known_shape[0], self.user_item_base.known_shape[1])
-        unlabeled_data.mask_user_item_shape(mask_shape)
+        if not self.ignore_unknown_user:
+            mask_shape = (self.user_item_base.global_shape[0], mask_shape[1])
+
+        unlabeled_data.mask_user_item_shape(
+            shape=mask_shape
+        )
         ground_truth_data.mask_user_item_shape(
-            mask_shape,
+            shape=mask_shape,
             drop_unknown_item=self.ignore_unknown_item,
             inherit_max_id=True,  # Ensures that shape of ground truth contains all user id that appears globally
         )
+        # get the index of ground_truth_data._df
+        if self.ignore_unknown_item:
+            unlabeled_data._df = unlabeled_data._df.loc[ground_truth_data._df.index]
         return unlabeled_data, ground_truth_data, self._current_timestamp
 
     def _prediction_shape_handler(

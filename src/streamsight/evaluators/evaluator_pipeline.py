@@ -166,8 +166,8 @@ class EvaluatorPipeline(EvaluatorBase):
             raise e
 
         # get the top k interaction per user
-        X_true = ground_truth_data.get_users_n_first_interaction(self.metric_k)
-        X_true = X_true.binary_values
+        # X_true = ground_truth_data.get_users_n_first_interaction(self.metric_k)
+        X_true = ground_truth_data.item_interaction_sequence_matrix
         for algo_state in self.algo_state_mgr.values():
             X_pred = algo_state.algo_ptr.predict(unlabeled_data)
             logger.debug("Shape of prediction matrix: %s", X_pred.shape)
