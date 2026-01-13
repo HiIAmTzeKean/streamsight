@@ -114,7 +114,6 @@ class Registry(Generic[T], BaseModel):
         else:
             return [key for key, cls in self.registered.items() if not getattr(cls, "IS_BASE", True)]
 
-    @property
     def registered_values(self) -> list[T]:
         """Get a list of all registered types.
 
@@ -123,7 +122,6 @@ class Registry(Generic[T], BaseModel):
         """
         return [self.registered[key] for key in self.get_registered_keys(include_base=False)]
 
-    @property
     def registered_items(self) -> list[tuple[str, T]]:
         """Get a list of all registered key-type pairs.
 
