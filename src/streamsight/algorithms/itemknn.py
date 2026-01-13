@@ -1,7 +1,6 @@
 import logging
 from typing import Self
 
-import pandas as pd
 from scipy.sparse import csr_matrix
 from sklearn.metrics.pairwise import cosine_similarity
 

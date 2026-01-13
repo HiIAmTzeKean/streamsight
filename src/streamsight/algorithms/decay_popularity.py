@@ -9,9 +9,6 @@ from .base import Algorithm
 
 class DecayPopularity(Algorithm):
     """A popularity-based algorithm with exponential decay over data from earlier time windows.
-
-    :param K: Number of items to recommend, defaults to 200
-    :type K: int, optional
     """
     IS_BASE: bool = False
 
