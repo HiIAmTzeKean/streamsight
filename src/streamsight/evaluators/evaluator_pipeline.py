@@ -3,9 +3,8 @@ from warnings import warn
 
 from tqdm import tqdm
 
-from streamsight.algorithms import Algorithm
 from streamsight.metrics import Metric
-from streamsight.registries import ALGORITHM_REGISTRY, METRIC_REGISTRY, AlgorithmEntry, MetricEntry
+from streamsight.registries import METRIC_REGISTRY, MetricEntry
 from streamsight.settings import EOWSettingError, Setting
 from ..matrix import PredictionMatrix
 from .accumulator import MetricAccumulator
@@ -180,7 +179,7 @@ class EvaluatorPipeline(EvaluatorBase):
                 metric.calculate(X_true, X_pred)
                 self._acc.add(
                     metric=metric,
-                    algorithm_name=self.algo_state_mgr.get_algorithm_identifier(algo_state.algo_uuid),
+                    algorithm_name=self.algo_state_mgr.get_algorithm_identifier(algo_state.algorithm_uuid),
                 )
 
     def _data_release_step(self) -> None:

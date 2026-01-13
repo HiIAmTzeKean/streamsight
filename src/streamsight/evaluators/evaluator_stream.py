@@ -14,9 +14,8 @@ from streamsight.registries import (
 from streamsight.settings import EOWSettingError, Setting
 from .accumulator import MetricAccumulator
 from .base import EvaluatorBase
-from .state_management import AlgorithmStateManager
+from .state_management import AlgorithmStateEnum, AlgorithmStateManager
 from .strategy import EvaluationStrategy, SlidingWindowStrategy
-from .warning import AlgorithmStateEnum
 
 
 class EvaluatorState(Enum):

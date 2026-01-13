@@ -159,7 +159,6 @@ Utility classes that support the evaluation process:
 
 - `MetricLevelEnum`: Enumeration for different metric aggregation levels
 - `UserItemBaseStatus`: Tracks known and unknown users/items during evaluation
-- `AlgorithmStatusWarning`: Custom warning for algorithm state issues
 
 These utilities handle the complex state management required for streaming
 evaluation scenarios.
@@ -175,7 +174,6 @@ from .builder import (
 from .evaluator_pipeline import EvaluatorPipeline
 from .evaluator_stream import EvaluatorStreamer
 from .util import MetricLevelEnum, UserItemBaseStatus
-from .warning import AlgorithmStatusWarning
 
 
 __all__ = [
@@ -188,19 +186,4 @@ __all__ = [
     "MetricAccumulator",
     "MetricLevelEnum",
     "UserItemBaseStatus",
-    "AlgorithmStatusWarning",
-]
-
-
-__all__ = [
-    "Builder",
-    "EvaluatorPipelineBuilder",
-    "EvaluatorStreamerBuilder",
-    "EvaluatorBase",
-    "EvaluatorPipeline",
-    "EvaluatorStreamer",
-    "MetricAccumulator",
-    "MetricLevelEnum",
-    "UserItemBaseStatus",
-    "AlgorithmStatusWarning",
 ]
