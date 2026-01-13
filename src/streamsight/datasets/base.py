@@ -1,33 +1,28 @@
 import logging
 import os
 import time
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from typing import ClassVar
 
 import httpx
 import pandas as pd
 
-from streamsight.matrix import InteractionMatrix
-from streamsight.preprocessing.filter import Filter, MinItemsPerUser, MinUsersPerItem
-from streamsight.preprocessing.preprocessor import DataFramePreprocessor
-from streamsight.utils.path import safe_dir
+from ..matrix import InteractionMatrix
+from ..models import BaseModel
+from ..preprocessing.filter import Filter, MinItemsPerUser, MinUsersPerItem
+from ..preprocessing.preprocessor import DataFramePreprocessor
+from ..utils.path import safe_dir
 from .config import DatasetConfig
 
 
 logger = logging.getLogger(__name__)
 
 
-class DataFetcher(ABC):
+class DataFetcher(BaseModel):
     """Represents a abstract class to be used by Dataset or Metadata subclass.
     """
-    IS_BASE: bool = True
     config: ClassVar[DatasetConfig] = DatasetConfig()
     """Configuration for the dataset."""
-
-    @property
-    def name(self) -> str:
-        """Name of the object's class."""
-        return self.__class__.__name__
 
     @property
     def file_path(self) -> str:
