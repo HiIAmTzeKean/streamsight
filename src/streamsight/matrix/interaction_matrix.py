@@ -3,14 +3,13 @@ import operator
 from collections.abc import Callable
 from copy import deepcopy
 from enum import StrEnum
-from typing import Literal, Self, overload
+from typing import Literal, overload
 from warnings import warn
 
 import numpy as np
 import pandas as pd
 from scipy.sparse import csr_matrix
 
-from streamsight.utils import to_binary
 from .exception import TimestampAttributeMissingError
 
 
@@ -614,6 +613,15 @@ class InteractionMatrix:
 
         sparse_matrix = csr_matrix((values, indices), shape=shape, dtype=values.dtype)
         return sparse_matrix
+
+    @property
+    def user_id_sequence_array(self) -> np.ndarray:
+        """Array of user IDs in the order of interactions.
+
+        :return: Numpy array of user IDs.
+        :rtype: np.ndarray
+        """
+        return self._df[InteractionMatrix.USER_IX].to_numpy()
 
     def get_prediction_data(self) -> "InteractionMatrix":
         """Get the data to be predicted.

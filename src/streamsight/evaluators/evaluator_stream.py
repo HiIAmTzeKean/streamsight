@@ -99,28 +99,15 @@ class EvaluatorStreamer(EvaluatorBase):
     def state(self) -> EvaluatorState:
         return self._state
 
-    def _assert_state(
-        self,
-        expected: EvaluatorState,
-        error_msg: str
-    ) -> None:
+    def _assert_state(self, expected: EvaluatorState, error_msg: str) -> None:
         """Assert evaluator is in expected state"""
         if self._state != expected:
-            raise RuntimeError(
-                f"{error_msg} (Current state: {self._state.value})"
-            )
+            raise RuntimeError(f"{error_msg} (Current state: {self._state.value})")
 
-    def _transition_state(
-        self,
-        new_state: EvaluatorState,
-        allow_from: list[EvaluatorState]
-    ) -> None:
+    def _transition_state(self, new_state: EvaluatorState, allow_from: list[EvaluatorState]) -> None:
         """Guard state transitions explicitly"""
         if self._state not in allow_from:
-            raise ValueError(
-                f"Cannot transition from {self._state} to {new_state}. "
-                f"Allowed from: {allow_from}"
-            )
+            raise ValueError(f"Cannot transition from {self._state} to {new_state}. Allowed from: {allow_from}")
         self._state = new_state
         logger.info(f"Evaluator transitioned to {new_state}")
 
@@ -187,10 +174,7 @@ class EvaluatorStreamer(EvaluatorBase):
         self._algo_state_mgr.set_all_ready(data_segment=self._current_timestamp)
         logger.debug("Evaluator is ready for streaming")
         # TODO: allow programmer to register anytime
-        self._transition_state(
-            EvaluatorState.STARTED,
-            allow_from=[EvaluatorState.INITIALIZED]
-        )
+        self._transition_state(EvaluatorState.STARTED, allow_from=[EvaluatorState.INITIALIZED])
 
     def register_algorithm(
         self,
@@ -204,10 +188,7 @@ class EvaluatorStreamer(EvaluatorBase):
         the algorithm in the registry. The method will raise a ValueError if
         the stream has already started.
         """
-        self._assert_state(
-            EvaluatorState.INITIALIZED,
-            "Cannot register algorithms after stream started"
-        )
+        self._assert_state(EvaluatorState.INITIALIZED, "Cannot register algorithms after stream started")
         algo_id = self._algo_state_mgr.register(name=algorithm_name, algo_ptr=algorithm)
         logger.debug(f"Algorithm {algo_id} registered")
         return algo_id
@@ -301,8 +282,7 @@ class EvaluatorStreamer(EvaluatorBase):
                 self.load_next_window()
             except EOWSettingError:
                 self._transition_state(
-                    EvaluatorState.COMPLETED,
-                    allow_from=[EvaluatorState.STARTED, EvaluatorState.IN_PROGRESS]
+                    EvaluatorState.COMPLETED, allow_from=[EvaluatorState.STARTED, EvaluatorState.IN_PROGRESS]
                 )
                 raise RuntimeError("End of evaluation window reached")
 
@@ -381,9 +361,18 @@ class EvaluatorStreamer(EvaluatorBase):
         for metric_entry in self.metric_entries:
             metric_cls = METRIC_REGISTRY.get(metric_entry.name)
             if metric_entry.K is not None:
-                metric: Metric = metric_cls(K=metric_entry.K, timestamp_limit=self._current_timestamp)
+                metric = metric_cls(
+                    K=metric_entry.K,
+                    timestamp_limit=self._current_timestamp,
+                    user_id_sequence_array=self._ground_truth_data_cache.user_id_sequence_array,
+                    user_item_shape=self._ground_truth_data_cache.user_item_shape,
+                )
             else:
-                metric: Metric = metric_cls(timestamp_limit=self._current_timestamp)
+                metric = metric_cls(
+                    timestamp_limit=self._current_timestamp,
+                    user_id_sequence_array=self._ground_truth_data_cache.user_id_sequence_array,
+                    user_item_shape=self._ground_truth_data_cache.user_item_shape,
+                )
             metric.calculate(y_true, y_pred)
             self._acc.add(metric=metric, algorithm_name=algorithm_name)
 

@@ -7,12 +7,13 @@
 
 import logging
 from typing import Optional
-import numpy as np
 
+import numpy as np
 from scipy.sparse import csr_matrix
 
-from streamsight.metrics.base import ListwiseMetricK
-from streamsight.metrics.util import sparse_divide_nonzero
+from ..core.listwise_top_k import ListwiseMetricK
+from ..core.util import sparse_divide_nonzero
+
 
 logger = logging.getLogger(__name__)
 
@@ -45,20 +46,17 @@ class NDCGK(ListwiseMetricK):
     """
     IS_BASE: bool = False
 
-    def __init__(self, K:Optional[int] = 10, timestamp_limit: Optional[int] = None):
-        super().__init__(K=K, timestamp_limit=timestamp_limit)
-
-        self.discount_template = 1.0 / np.log2(np.arange(2, K + 2))
-        # Calculate IDCG values by creating a list of partial sums
-        self.IDCG_cache = np.concatenate([[1], np.cumsum(self.discount_template)])
-
-    def _calculate(self, y_true: csr_matrix, y_pred_top_K: csr_matrix) -> None:
+    def _calculate(self, y_true: csr_matrix, y_pred: csr_matrix) -> None:
         logger.debug(f"NDCGK compute started - {self.name}")
         logger.debug(f"Number of users: {y_true.shape[0]}")
         logger.debug(f"Number of ground truth interactions: {y_true.nnz}")
 
+        self.discount_template = 1.0 / np.log2(np.arange(2, self.K + 2))
+        # Calculate IDCG values by creating a list of partial sums
+        self.IDCG_cache = np.concatenate([[1], np.cumsum(self.discount_template)])
+
         # Correct predictions only
-        denominator = y_pred_top_K.multiply(y_true)
+        denominator = y_pred.multiply(y_true)
         # Denominator: log2(rank_i + 1)
         denominator.data = np.log2(denominator.data + 1)
         # Binary relevance
@@ -78,5 +76,3 @@ class NDCGK(ListwiseMetricK):
         )
 
         logger.debug(f"NDCGK compute complete - {self.name}")
-
-

@@ -23,7 +23,9 @@ with the predicted and ground truth rankings:
 from streamsight.metrics import PrecisionK
 
 metric = PrecisionK(k=10)
-score = metric.evaluate(predicted_ranking, ground_truth_ranking)
+score = metric.evaluate(
+    predicted_ranking, ground_truth_ranking
+)
 ```
 
 The `evaluate` method returns a single float value representing the metric score.
@@ -38,12 +40,9 @@ Refer to the base class documentation for implementation details.
 - streamsight.evaluators: Evaluator classes for running metrics over data streams
 """
 
-from .base import Metric
-from .dcg import DCGK
-from .hit import HitK
-from .ndcg import NDCGK
-from .precision import PrecisionK
-from .recall import RecallK
+from .binary import HitK
+from .core import ListwiseMetricK, Metric, MetricTopK
+from .ranking import DCGK, NDCGK, PrecisionK, RecallK
 
 
 __all__ = [
@@ -53,4 +52,6 @@ __all__ = [
     "DCGK",
     "NDCGK",
     "HitK",
+    "ListwiseMetricK",
+    "MetricTopK",
 ]

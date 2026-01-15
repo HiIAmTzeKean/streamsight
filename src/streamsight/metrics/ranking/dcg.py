@@ -10,8 +10,8 @@ import logging
 import numpy as np
 from scipy.sparse import csr_matrix
 
-from streamsight.metrics.base import ListwiseMetricK
-from streamsight.metrics.util import sparse_divide_nonzero
+from ..core.listwise_top_k import ListwiseMetricK
+from ..core.util import sparse_divide_nonzero
 
 
 logger = logging.getLogger(__name__)
@@ -37,10 +37,9 @@ class DCGK(ListwiseMetricK):
     IS_BASE: bool = False
 
     def _calculate(self, y_true: csr_matrix, y_pred: csr_matrix) -> None:
-        # log number of users and ground truth interactions
-        logger.debug(f"DCGK compute started - {self.name}")
-        logger.debug(f"Number of users: {y_true.shape[0]}")
-        logger.debug(f"Number of ground truth interactions: {y_true.nnz}")
+        logger.debug("Precision compute started - %s", self.name)
+        logger.debug("Shape of matrix: (%d, %d)", y_true.shape[0], y_true.shape[1])
+        logger.debug("Number of ground truth interactions: %d", y_true.nnz)
 
         denominator = y_pred.multiply(y_true)
         # Denominator: log2(rank_i + 1)

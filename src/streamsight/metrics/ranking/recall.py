@@ -3,7 +3,7 @@ import logging
 import scipy.sparse
 from scipy.sparse import csr_matrix
 
-from streamsight.metrics.base import ListwiseMetricK
+from ..core.listwise_top_k import ListwiseMetricK
 
 
 logger = logging.getLogger(__name__)
@@ -29,10 +29,9 @@ class RecallK(ListwiseMetricK):
     def _calculate(self, y_true: csr_matrix, y_pred: csr_matrix) -> None:
         scores = scipy.sparse.lil_matrix(y_pred.shape)
 
-        # log number of users and ground truth interactions
-        logger.debug(f"Recall compute started - {self.name}")
-        logger.debug(f"Number of users: {y_true.shape[0]}")
-        logger.debug(f"Number of ground truth interactions: {y_true.nnz}")
+        logger.debug("Precision compute started - %s", self.name)
+        logger.debug("Shape of matrix: (%d, %d)", y_true.shape[0], y_true.shape[1])
+        logger.debug("Number of ground truth interactions: %d", y_true.nnz)
 
         # obtain true positives
         scores[y_pred.multiply(y_true).astype(bool)] = 1
