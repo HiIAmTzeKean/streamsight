@@ -45,7 +45,7 @@ class AlgorithmStateEntry:
     """
 
     name: str
-    algo_uuid: UUID
+    algorithm_uuid: UUID
     state: AlgorithmStateEnum = AlgorithmStateEnum.NEW
     data_segment: int = 0
     params: dict[str, Any] = field(default_factory=dict)
@@ -150,7 +150,7 @@ class AlgorithmStateManager:
         if algo_uuid is None:
             algo_uuid = generate_algorithm_uuid(name)
 
-        entry = AlgorithmStateEntry(algo_uuid=algo_uuid, name=name, algo_ptr=algo_ptr, params=params)
+        entry = AlgorithmStateEntry(algorithm_uuid=algo_uuid, name=name, algo_ptr=algo_ptr, params=params)
         self._algorithms[algo_uuid] = entry
         logger.info(f"Registered algorithm '{name}' with ID {algo_uuid}")
         return algo_uuid

@@ -28,8 +28,8 @@ class ItemKNNIncremental(ItemKNN):
     def _append_training_data(self, X: csr_matrix) -> None:
         """Append a new interaction matrix to the historical data.
 
-        :param X: The new interaction matrix
-        :type X: csr_matrix
+        Args:
+            X (csr_matrix): Interaction matrix to append
         """
         if self.X_ is None:
             raise ValueError("No existing training data to append to.")

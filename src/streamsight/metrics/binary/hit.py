@@ -9,7 +9,7 @@ import logging
 
 from scipy.sparse import csr_matrix, lil_matrix
 
-from streamsight.metrics.base import ElementwiseMetricK
+from ..core.elementwise_top_k import ElementwiseMetricK
 
 
 logger = logging.getLogger(__name__)
@@ -43,7 +43,7 @@ class HitK(ElementwiseMetricK):
         scores[y_pred.multiply(y_true).astype(bool)] = 1
 
         scores = scores.tocsr()
-
-        self._scores = scores
+        binary_score = (scores.sum(axis=1) >= 1).astype(int)
+        self._scores = csr_matrix(binary_score)
 
         logger.debug(f"HitK compute complete - {self.name}")

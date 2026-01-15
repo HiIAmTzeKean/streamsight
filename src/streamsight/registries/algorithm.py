@@ -3,13 +3,14 @@ import logging
 import uuid
 from typing import Any, NamedTuple
 
+from ..algorithms import Algorithm
 from .base import Registry
 
 
 logger = logging.getLogger(__name__)
 
 
-class AlgorithmRegistry(Registry):
+class AlgorithmRegistry(Registry[Algorithm]):
     """Registry for easy retrieval of algorithm types by name.
 
     The registry is pre-registered with all streamsight algorithms.

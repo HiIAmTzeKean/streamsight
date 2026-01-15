@@ -30,6 +30,15 @@ class Algorithm(BaseEstimator, BaseModel, ParamMixin):
         self.rand_gen = np.random.default_rng(seed=self.seed)
 
     @property
+    def description(self) -> str:
+        """Description of the algorithm.
+
+        :return: Description of the algorithm
+        :rtype: str
+        """
+        return self.__doc__ or "No description provided."
+
+    @property
     def identifier(self) -> str:
         """Identifier of the object.
 

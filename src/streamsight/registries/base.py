@@ -1,6 +1,7 @@
 import inspect
 import logging
 from types import ModuleType
+from typing import Generic, TypeVar
 
 from ..models import BaseModel
 
@@ -8,14 +9,17 @@ from ..models import BaseModel
 logger = logging.getLogger(__name__)
 
 
-class Registry(BaseModel):
+T = TypeVar('T', bound=BaseModel)
+
+
+class Registry(Generic[T], BaseModel):
     """A Registry is a wrapper for a dictionary that maps names to Python types.
 
     Most often, this is used to map names to classes.
     """
 
     def __init__(self, src: ModuleType) -> None:
-        self.registered: dict[str, type] = {}
+        self.registered: dict[str, T] = {}
         self.src = src
         self._register_all_src()
 
@@ -35,7 +39,7 @@ class Registry(BaseModel):
                 # Skip if the attribute doesn't exist
                 continue
 
-    def __getitem__(self, key: str) -> type:
+    def __getitem__(self, key: str) -> T:
         """Retrieve the type for the given key.
 
         Args:
@@ -67,7 +71,7 @@ class Registry(BaseModel):
         except KeyError:
             return False
 
-    def get(self, key: str) -> type:
+    def get(self, key: str) -> T:
         """Retrieve the value for this key.
 
         This value is a Python type, most often a class.
@@ -83,7 +87,7 @@ class Registry(BaseModel):
         """
         return self[key]
 
-    def register(self, key: str, cls: type) -> None:
+    def register(self, key: str, cls: T) -> None:
         """Register a new Python type (most often a class).
 
         After registration, the key can be used to fetch the Python type from the registry.
@@ -109,3 +113,19 @@ class Registry(BaseModel):
             return list(self.registered.keys())
         else:
             return [key for key, cls in self.registered.items() if not getattr(cls, "IS_BASE", True)]
+
+    def registered_values(self) -> list[T]:
+        """Get a list of all registered types.
+
+        Returns:
+            A list of all registered types.
+        """
+        return [self.registered[key] for key in self.get_registered_keys(include_base=False)]
+
+    def registered_items(self) -> list[tuple[str, T]]:
+        """Get a list of all registered key-type pairs.
+
+        Returns:
+            A list of all registered key-type pairs.
+        """
+        return [(key, self.registered[key]) for key in self.get_registered_keys(include_base=False)]

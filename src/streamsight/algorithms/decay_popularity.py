@@ -3,15 +3,12 @@ from warnings import warn
 import numpy as np
 from scipy.sparse import csr_matrix, lil_matrix
 
-from streamsight.algorithms import Algorithm
-from streamsight.matrix.interaction_matrix import InteractionMatrix
+from streamsight.matrix import InteractionMatrix
+from .base import Algorithm
 
 
 class DecayPopularity(Algorithm):
     """A popularity-based algorithm with exponential decay over data from earlier time windows.
-
-    :param K: Number of items to recommend, defaults to 200
-    :type K: int, optional
     """
     IS_BASE: bool = False
 

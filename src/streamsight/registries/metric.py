@@ -1,10 +1,11 @@
 import importlib
 from typing import NamedTuple
 
+from ..metrics import Metric
 from .base import Registry
 
 
-class MetricRegistry(Registry):
+class MetricRegistry(Registry[Metric]):
     """Registry for easy retrieval of metric types by name.
 
     The registry comes preregistered with all the streamsight metrics.

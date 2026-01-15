@@ -25,6 +25,16 @@ class ParamMixin(ABC):
 
     Provides common properties like name, params, and identifier.
     """
+
+    @property
+    def name(self) -> str:
+        """Name of the object's class.
+
+        :return: Name of the object's class
+        :rtype: str
+        """
+        return self.__class__.__name__
+
     @abstractmethod
     def get_params(self) -> dict[str, Any]:
         """Get the parameters of the object.

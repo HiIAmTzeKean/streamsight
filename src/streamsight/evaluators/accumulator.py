@@ -77,21 +77,6 @@ class MetricAccumulator:
                 )
         return results
 
-    @deprecated(details="Use `window_level_metrics` instead")
-    @property
-    def metrics(self) -> defaultdict:
-        results = defaultdict(dict)
-        for algo_name in self.acc:
-            for metric_identifier in self.acc[algo_name]:
-                metric = self.acc[algo_name][metric_identifier]
-                results[(algo_name, f"t={metric.timestamp_limit}", metric.name)]["score"] = (
-                    metric.macro_result
-                )
-                results[(algo_name, f"t={metric.timestamp_limit}", metric.name)]["num_user"] = (
-                    metric.num_users
-                )
-        return results
-
     def df_user_level_metric(self) -> pd.DataFrame:
         """User metric across all timestamps
 

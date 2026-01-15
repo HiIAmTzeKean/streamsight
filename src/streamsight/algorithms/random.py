@@ -13,11 +13,6 @@ class Random(TopKAlgorithm):
     """Random recommendation for users.
 
     The Random algorithm recommends K random items to all users in the predict frame.
-
-    :param K: Number of items to recommendation, defaults to 10
-    :type K: int, optional
-    :param seed: Seed for the random number, defaults to None
-    :type seed: int, optional
     """
     IS_BASE: bool = False
 

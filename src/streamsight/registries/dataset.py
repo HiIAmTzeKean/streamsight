@@ -1,9 +1,10 @@
 import importlib
 
+from ..datasets import Dataset
 from .base import Registry
 
 
-class DatasetRegistry(Registry):
+class DatasetRegistry(Registry[Dataset]):
     """Registry for easy retrieval of dataset types by name.
 
     The registry comes preregistered with all the streamsight datasets.
