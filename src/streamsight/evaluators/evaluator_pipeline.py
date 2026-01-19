@@ -175,7 +175,14 @@ class EvaluatorPipeline(EvaluatorBase):
 
             for metric_entry in self.metric_entries:
                 metric_cls = METRIC_REGISTRY.get(metric_entry.name)
-                metric: Metric = metric_cls(K=metric_entry.K, timestamp_limit=current_timestamp)
+                params = {
+                    'timestamp_limit': current_timestamp,
+                    'user_id_sequence_array': ground_truth_data.user_id_sequence_array,
+                    'user_item_shape': ground_truth_data.user_item_shape,
+                }
+                if metric_entry.K is not None:
+                    params['K'] = metric_entry.K
+                metric = metric_cls(**params)
                 metric.calculate(X_true, X_pred)
                 self._acc.add(
                     metric=metric,

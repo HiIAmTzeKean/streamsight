@@ -1,29 +1,21 @@
 import logging
 from typing import Self
 
+import numpy as np
 from scipy.sparse import csr_matrix, hstack, vstack
 
-from .base import PopularityPaddingMixin, TopKItemSimilarityMatrixAlgorithm
-from .itemknn import ItemKNN
+from ...matrix import PredictionMatrix
+from ..base import PopularityPaddingMixin, TopKAlgorithm
 
 
 logger = logging.getLogger(__name__)
 
 
-class ItemKNNIncremental(ItemKNN):
-    """Incremental version of ItemKNN algorithm.
-
-    This class extends the ItemKNN algorithm to allow for incremental updates
-    to the model. The incremental updates are done by updating the historical
-    data with the new data by appending the new data to the historical data.
-    """
+class MostPopular(TopKAlgorithm, PopularityPaddingMixin):
+    """A popularity-based algorithm that considers all historical data."""
 
     IS_BASE: bool = False
-
-    def __init__(self, K: int = 10, pad_with_popularity: bool = True) -> None:
-        PopularityPaddingMixin.__init__(self, pad_with_popularity=pad_with_popularity)
-        TopKItemSimilarityMatrixAlgorithm.__init__(self, K=K)
-        self.X_: None | csr_matrix = None
+    X_: csr_matrix | None = None  # Store all historical training data
 
     def _append_training_data(self, X: csr_matrix) -> None:
         """Append a new interaction matrix to the historical data.
@@ -56,10 +48,25 @@ class ItemKNNIncremental(ItemKNN):
         self.X_ = X_prev + X
 
     def _fit(self, X: csr_matrix) -> Self:
-        """Fit a cosine similarity matrix from item to item."""
         if self.X_ is not None:
             self._append_training_data(X)
-            super()._fit(self.X_)
         else:
-            super()._fit(X)
+            self.X_ = X.copy()
+
+        if not isinstance(self.X_, csr_matrix):
+            raise ValueError("Training data is not initialized properly.")
+
+        if self.X_.shape[1] < self.K:
+            logger.warning("K is larger than the number of items.", UserWarning)
+
+        self.sorted_scores_ = self.get_popularity_scores(self.X_)
         return self
+
+    def _predict(self, X: PredictionMatrix) -> csr_matrix:
+        intended_shape = (X.get_prediction_data().num_interactions, X.user_item_shape[1])
+
+        # Vectorized: repeat the sorted scores for each prediction row
+        data = np.tile(self.sorted_scores_, (intended_shape[0], 1))
+        X_pred = csr_matrix(data)
+
+        return X_pred

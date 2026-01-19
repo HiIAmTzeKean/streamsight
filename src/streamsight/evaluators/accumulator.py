@@ -3,7 +3,6 @@ from collections import defaultdict
 from typing import Optional
 
 import pandas as pd
-from deprecation import deprecated
 
 from streamsight.metrics import Metric
 from .util import MetricLevelEnum

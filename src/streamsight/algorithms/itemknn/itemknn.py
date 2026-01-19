@@ -5,8 +5,8 @@ from scipy.sparse import csr_matrix
 from sklearn.metrics.pairwise import cosine_similarity
 
 from streamsight.matrix import ItemUserBasedEnum, PredictionMatrix
-from .base import PopularityPaddingMixin, TopKItemSimilarityMatrixAlgorithm
-from .utils import get_top_K_values
+from ..base import PopularityPaddingMixin, TopKItemSimilarityMatrixAlgorithm
+from ..utils import get_top_K_values
 
 
 logger = logging.getLogger(__name__)

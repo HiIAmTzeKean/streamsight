@@ -4,9 +4,9 @@ import numpy as np
 import pandas as pd
 from scipy.sparse import csr_matrix
 
-from ..matrix import PredictionMatrix
-from .base import TopKAlgorithm
-from .utils import get_top_K_values
+from ...matrix import PredictionMatrix
+from ..base import TopKAlgorithm
+from ..utils import get_top_K_values
 
 
 class Random(TopKAlgorithm):

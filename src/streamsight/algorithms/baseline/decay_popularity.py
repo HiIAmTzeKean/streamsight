@@ -1,21 +1,16 @@
-import logging
+from warnings import warn
 
 import numpy as np
-import pandas as pd
 from scipy.sparse import csr_matrix, lil_matrix
 
-from .base import Algorithm
+from ...matrix import InteractionMatrix
+from ..base import Algorithm
 
 
-logger = logging.getLogger(__name__)
-
-
-class MostPop(Algorithm):
-    """A popularity-based algorithm with based on MostPop by accumulating data from earlier time windows.
-
-    :param K: Number of items to recommend, defaults to 200
-    :type K: int, optional
+class DecayPopularity(Algorithm):
+    """A popularity-based algorithm with exponential decay over data from earlier time windows.
     """
+    IS_BASE: bool = False
 
     def __init__(self, K: int = 200) -> None:
         super().__init__()
@@ -50,7 +45,7 @@ class MostPop(Algorithm):
             if self.historical_data[i].shape[1] < new_num_items:
                 self.historical_data[i] = self._pad_matrix(self.historical_data[i], new_num_items)
 
-    def _fit(self, X: csr_matrix) -> "MostPop":
+    def _fit(self, X: csr_matrix) -> "DecayPopularity":
         """
         Fit the model by applying decay to historical data and adding new data.
 
@@ -73,37 +68,43 @@ class MostPop(Algorithm):
         # Initialize decayed scores
         num_items = X.shape[1]
         if num_items < self.K:
-            logger.warning("K is larger than the number of items.", UserWarning)
+            warn("K is larger than the number of items.", UserWarning)
 
-        interaction_counts = np.zeros(num_items)
+        decayed_scores = np.zeros(num_items)
 
-        for matrix in self.historical_data:
-            interaction_counts += matrix.sum(axis=0).A[0]
+        # Apply decay to each historical matrix
+        for i, matrix in enumerate(self.historical_data):
+            # length 2, i = 0 -> 2-1-0 = 1, i = 1 -> 2-1-1 = 0
+            # length 3, i = 0 -> 3-1-0 = 2, i = 1 -> 3-1-1 = 1, i = 2 -> 3-1-2 = 0
+            decay_factor = np.exp(-(len(self.historical_data) - 1 - i))
+            decayed_scores += matrix.sum(axis=0).A[0] * decay_factor
 
-        normalized_scores = interaction_counts / interaction_counts.max()
+        normalized_scores = decayed_scores / decayed_scores.max()
 
         K = min(self.K, num_items)
         ind = np.argpartition(normalized_scores, -K)[-K:]
         a = np.zeros(num_items)
         a[ind] = normalized_scores[ind]
-        self.sorted_scores_ = a
+        self.decayed_scores_ = a
         return self
 
-    def _predict(self, X: csr_matrix, predict_ui_df: pd.DataFrame | None = None) -> csr_matrix:
+    def _predict(self, X: csr_matrix, predict_im: InteractionMatrix) -> csr_matrix:
         """
-        Predict the K most popular item for each user.
+        Predict the K most popular item for each user scaled by the decay factor.
         """
-        if predict_ui_df is None:
-            raise AttributeError(f"Predict frame with requested ID is required for {self.name} algorithm")
+        if predict_im is None:
+            raise AttributeError("Predict frame with requested ID is required for Popularity algorithm")
 
-        users = predict_ui_df["uid"].unique().tolist()
+        predict_frame = predict_im._df
+
+        users = predict_frame["uid"].unique().tolist()
         known_item_id = X.shape[1]
 
-        # predict_ui_df contains (user_id, -1) pairs
-        max_user_id = predict_ui_df["uid"].max() + 1
+        # predict_frame contains (user_id, -1) pairs
+        max_user_id = predict_frame["uid"].max() + 1
         intended_shape = (max(max_user_id, X.shape[0]), known_item_id)
 
         X_pred = lil_matrix(intended_shape)
-        X_pred[users] = self.sorted_scores_
+        X_pred[users] = self.decayed_scores_
 
-        return csr_matrix(X_pred.tocsr())
+        return X_pred.tocsr()

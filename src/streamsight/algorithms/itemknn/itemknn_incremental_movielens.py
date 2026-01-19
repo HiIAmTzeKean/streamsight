@@ -2,12 +2,12 @@ import logging
 
 import numpy as np
 import pandas as pd
-from scipy.sparse import csr_matrix, hstack, vstack
+from scipy.sparse import csr_matrix
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import OneHotEncoder
 
-from streamsight.matrix import InteractionMatrix
-from streamsight.utils.util import add_rows_to_csr_matrix
+from ...matrix import InteractionMatrix
+from ...utils import add_rows_to_csr_matrix
 from .itemknn_incremental import ItemKNNIncremental
 
 

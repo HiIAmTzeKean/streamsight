@@ -6,7 +6,6 @@ from scipy.sparse import csr_matrix
 
 from streamsight.algorithms import Algorithm
 from streamsight.matrix import InteractionMatrix, PredictionMatrix
-from streamsight.metrics import Metric
 from streamsight.registries import (
     METRIC_REGISTRY,
     MetricEntry,
@@ -360,19 +359,15 @@ class EvaluatorStreamer(EvaluatorBase):
         # evaluate the prediction
         for metric_entry in self.metric_entries:
             metric_cls = METRIC_REGISTRY.get(metric_entry.name)
+            params = {
+                'timestamp_limit': self._current_timestamp,
+                'user_id_sequence_array': self._ground_truth_data_cache.user_id_sequence_array,
+                'user_item_shape': self._ground_truth_data_cache.user_item_shape,
+            }
             if metric_entry.K is not None:
-                metric = metric_cls(
-                    K=metric_entry.K,
-                    timestamp_limit=self._current_timestamp,
-                    user_id_sequence_array=self._ground_truth_data_cache.user_id_sequence_array,
-                    user_item_shape=self._ground_truth_data_cache.user_item_shape,
-                )
-            else:
-                metric = metric_cls(
-                    timestamp_limit=self._current_timestamp,
-                    user_id_sequence_array=self._ground_truth_data_cache.user_id_sequence_array,
-                    user_item_shape=self._ground_truth_data_cache.user_item_shape,
-                )
+                params['K'] = metric_entry.K
+
+            metric = metric_cls(**params)
             metric.calculate(y_true, y_pred)
             self._acc.add(metric=metric, algorithm_name=algorithm_name)
 
