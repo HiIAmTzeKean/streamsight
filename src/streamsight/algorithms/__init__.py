@@ -31,7 +31,7 @@ baseline algorithms are implemented in the module.
     Random
     RecentPopularity
     DecayPopularity
-    MostPop
+    MostPopular
 
 Item Similarity Algorithms
 ----------------------------
@@ -69,17 +69,11 @@ This gives heavier weight to interactions that are more recent.
     TARSItemKNNDing
 """
 
-from streamsight.algorithms.base import Algorithm
-from streamsight.algorithms.decay_popularity import DecayPopularity
-from streamsight.algorithms.itemknn import ItemKNN
-from streamsight.algorithms.itemknn_incremental import ItemKNNIncremental
-from streamsight.algorithms.itemknn_incremental_movielens import ItemKNNIncrementalMovieLens100K
-from streamsight.algorithms.itemknn_rolling import ItemKNNRolling
-from streamsight.algorithms.itemknn_static import ItemKNNStatic
-from streamsight.algorithms.most_pop import MostPop
-from streamsight.algorithms.random import Random
-from streamsight.algorithms.recent_popularity import RecentPopularity
-from streamsight.algorithms.time_aware_item_knn import (
+from .base import Algorithm
+from .baseline import MostPopular, Random, RecentPopularity
+from .baseline.decay_popularity import DecayPopularity
+from .itemknn import ItemKNN, ItemKNNIncremental, ItemKNNIncrementalMovieLens100K, ItemKNNRolling, ItemKNNStatic
+from .time_aware_item_knn import (
     TARSItemKNN,
     TARSItemKNNDing,
     TARSItemKNNLiu,
@@ -95,7 +89,7 @@ __all__ = [
     "ItemKNNIncrementalMovieLens100K",
     "ItemKNNRolling",
     "ItemKNNStatic",
-    "MostPop",
+    "MostPopular",
     "Random",
     "RecentPopularity",
     "TARSItemKNN",

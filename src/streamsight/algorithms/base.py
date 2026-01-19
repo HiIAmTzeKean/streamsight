@@ -11,8 +11,8 @@ from sklearn.base import BaseEstimator
 from sklearn.utils.validation import check_is_fitted
 
 from streamsight.matrix import InteractionMatrix, ItemUserBasedEnum, PredictionMatrix, to_csr_matrix
-from streamsight.utils.util import add_columns_to_csr_matrix, add_rows_to_csr_matrix
 from ..models import BaseModel, ParamMixin
+from ..utils import add_columns_to_csr_matrix, add_rows_to_csr_matrix
 
 
 logger = logging.getLogger(__name__)
@@ -331,7 +331,6 @@ class TopKAlgorithm(Algorithm):
     def __init__(self, K: int = 10) -> None:
         super().__init__()
         self.K = K
-        self.similarity_matrix_: csr_matrix
 
 
 class TopKItemSimilarityMatrixAlgorithm(TopKAlgorithm):
