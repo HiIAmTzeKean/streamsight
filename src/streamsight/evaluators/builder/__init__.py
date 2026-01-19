@@ -43,7 +43,7 @@ builder.add_setting(setting)
 builder.set_metric_K(10)
 builder.add_metric("PrecisionK")
 builder.add_metric("RecallK")
-builder.add_algorithm("MostPop")
+builder.add_algorithm("MostPopular")
 builder.add_algorithm("RecentPop", params={"K": 10})
 
 evaluator = builder.build()

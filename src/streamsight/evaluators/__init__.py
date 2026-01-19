@@ -75,7 +75,7 @@ builder = EvaluatorPipelineBuilder()
 builder.add_setting(setting)
 builder.set_metric_K(10)
 builder.add_metric("PrecisionK")
-builder.add_algorithm("MostPop")
+builder.add_algorithm("MostPopular")
 evaluator = builder.build()
 
 # Run evaluation
@@ -90,7 +90,7 @@ Streaming Evaluation:
 ```python
 from streamsight.evaluators import EvaluatorStreamer
 from streamsight.evaluators.builder import EvaluatorStreamerBuilder
-from streamsight.algorithms import MostPop
+from streamsight.algorithms import MostPopular
 
 # Build streaming evaluator
 builder = EvaluatorStreamerBuilder()
@@ -103,7 +103,7 @@ evaluator = builder.build()
 evaluator.start_stream()
 
 # Register algorithm
-algo_id = evaluator.register_algorithm(MostPop())
+algo_id = evaluator.register_algorithm(MostPopular())
 
 # Stream evaluation loop
 while True:
