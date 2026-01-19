@@ -19,7 +19,7 @@ class Registry(Generic[T], BaseModel):
     """
 
     def __init__(self, src: ModuleType) -> None:
-        self.registered: dict[str, T] = {}
+        self.registered: dict[str, type[T]] = {}
         self.src = src
         self._register_all_src()
 
@@ -39,7 +39,7 @@ class Registry(Generic[T], BaseModel):
                 # Skip if the attribute doesn't exist
                 continue
 
-    def __getitem__(self, key: str) -> T:
+    def __getitem__(self, key: str) -> type[T]:
         """Retrieve the type for the given key.
 
         Args:
@@ -71,7 +71,7 @@ class Registry(Generic[T], BaseModel):
         except KeyError:
             return False
 
-    def get(self, key: str) -> T:
+    def get(self, key: str) -> type[T]:
         """Retrieve the value for this key.
 
         This value is a Python type, most often a class.
@@ -87,7 +87,7 @@ class Registry(Generic[T], BaseModel):
         """
         return self[key]
 
-    def register(self, key: str, cls: T) -> None:
+    def register(self, key: str, cls: type[T]) -> None:
         """Register a new Python type (most often a class).
 
         After registration, the key can be used to fetch the Python type from the registry.
@@ -114,7 +114,7 @@ class Registry(Generic[T], BaseModel):
         else:
             return [key for key, cls in self.registered.items() if not getattr(cls, "IS_BASE", True)]
 
-    def registered_values(self) -> list[T]:
+    def registered_values(self) -> list[type[T]]:
         """Get a list of all registered types.
 
         Returns:
@@ -122,7 +122,7 @@ class Registry(Generic[T], BaseModel):
         """
         return [self.registered[key] for key in self.get_registered_keys(include_base=False)]
 
-    def registered_items(self) -> list[tuple[str, T]]:
+    def registered_items(self) -> list[tuple[str, type[T]]]:
         """Get a list of all registered key-type pairs.
 
         Returns:
